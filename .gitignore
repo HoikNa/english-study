@@ -2,6 +2,7 @@
 
 # dependencies
 node_modules/
+backend/.venv/
 
 # Expo
 .expo/
@@ -35,6 +36,12 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+backend/.data/
 
 # generated native folders
 /ios

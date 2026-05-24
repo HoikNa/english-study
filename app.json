@@ -1,11 +1,12 @@
 {
   "expo": {
-    "name": "speakready-my",
+    "name": "SpeakReadyMY",
     "slug": "speakready-my",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "scheme": "speakready",
     "ios": {
       "supportsTablet": true
     },
@@ -19,7 +20,24 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
+      "bundler": "metro",
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "SpeakReadyMY needs microphone access to assess your English pronunciation.",
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ],
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }

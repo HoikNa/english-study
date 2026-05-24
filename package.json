@@ -3,20 +3,53 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
+    "@expo-google-fonts/ibm-plex-mono": "^0.4.1",
+    "@expo-google-fonts/instrument-serif": "^0.4.1",
+    "@expo-google-fonts/inter": "^0.4.2",
+    "@expo/metro-runtime": "~56.0.11",
+    "@tanstack/react-query": "^5.100.11",
+    "axios": "^1.16.1",
     "expo": "~56.0.3",
+    "expo-audio": "~56.0.9",
+    "expo-av": "^16.0.8",
+    "expo-blur": "~56.0.3",
+    "expo-constants": "~56.0.14",
+    "expo-font": "~56.0.5",
+    "expo-linear-gradient": "~56.0.4",
+    "expo-linking": "~56.0.11",
+    "expo-router": "~56.2.5",
     "expo-status-bar": "~56.0.4",
+    "nativewind": "^4.2.4",
     "react": "19.2.3",
-    "react-native": "0.85.3"
+    "react-dom": "19.2.3",
+    "react-native": "0.85.3",
+    "react-native-reanimated": "^4.3.1",
+    "react-native-safe-area-context": "^5.8.0",
+    "react-native-svg": "15.15.4",
+    "react-native-web": "^0.21.2",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "babel-preset-expo": "^56.0.11",
+    "prettier-plugin-tailwindcss": "^0.5.14",
+    "tailwindcss": "^3.4.19",
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "node:version": "bash -lc 'unset npm_config_prefix NO_COLOR && source \"$HOME/.nvm/nvm.sh\" && nvm use --silent && export PATH=\"$NVM_BIN:$PATH\" && node -v && npm -v'",
+    "start": "bash -lc 'unset npm_config_prefix NO_COLOR && source \"$HOME/.nvm/nvm.sh\" && nvm use --silent && export PATH=\"$NVM_BIN:$PATH\" && expo start \"$@\"' --",
+    "android": "bash -lc 'unset npm_config_prefix NO_COLOR && source \"$HOME/.nvm/nvm.sh\" && nvm use --silent && export PATH=\"$NVM_BIN:$PATH\" && expo start --android \"$@\"' --",
+    "ios": "bash -lc 'unset npm_config_prefix NO_COLOR && source \"$HOME/.nvm/nvm.sh\" && nvm use --silent && export PATH=\"$NVM_BIN:$PATH\" && expo start --ios \"$@\"' --",
+    "web": "bash -lc 'unset npm_config_prefix NO_COLOR && source \"$HOME/.nvm/nvm.sh\" && nvm use --silent && export PATH=\"$NVM_BIN:$PATH\" && expo start --web \"$@\"' --",
+    "export:web": "bash -lc 'unset npm_config_prefix NO_COLOR && source \"$HOME/.nvm/nvm.sh\" && nvm use --silent && export PATH=\"$NVM_BIN:$PATH\" && expo export --platform web --output-dir /tmp/english-study-web-export'",
+    "typecheck": "bash -lc 'unset npm_config_prefix NO_COLOR && source \"$HOME/.nvm/nvm.sh\" && nvm use --silent && export PATH=\"$NVM_BIN:$PATH\" && tsc --noEmit'",
+    "browser": "LD_LIBRARY_PATH=/home/hoik02/.agent-browser/local-libs/usr/lib/x86_64-linux-gnu /home/hoik02/.cursor-server/bin/bin/agent-browser",
+    "browser:doctor": "npm run browser -- doctor",
+    "browser:open": "npm run browser -- open",
+    "backend:install": "python3 -m venv backend/.venv && backend/.venv/bin/pip install -r backend/requirements.txt",
+    "backend:dev": "PYTHONPATH=backend backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000",
+    "backend:test": "PYTHONPATH=backend backend/.venv/bin/pytest"
   },
   "private": true
 }
