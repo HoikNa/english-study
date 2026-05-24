@@ -39,8 +39,8 @@ async def pronunciation(
     reference_text: str = Form(...),
     expression_id: str | None = Form(default=None),
 ) -> PronunciationResult:
-    await audio_file.read()
-    return azure_speech.assess_pronunciation(reference_text)
+    audio_bytes = await audio_file.read()
+    return azure_speech.assess_pronunciation(audio_bytes, reference_text)
 
 
 @router.post("/feedback", response_model=FeedbackResult)
@@ -74,5 +74,5 @@ def simulate_start(payload: SimulationStart) -> SimulationStartResult:
 
 @router.post("/simulate/{simulation_id}/message", response_model=SimulationReply)
 def simulate_message(simulation_id: str, payload: SimulationMessage) -> SimulationReply:
-    return gpt_coach.create_simulation_reply(payload.message)
+    return gpt_coach.create_simulation_reply(payload.message, payload.history)
 

@@ -1,7 +1,158 @@
+import json
+
+from fastapi import HTTPException
+
+from app.config import get_settings
 from app.schemas import CustomExpressionResult, FeedbackAlternative, FeedbackResult, SimulationReply
 
+_USER_CONTEXT = (
+    "사용자: 45세 한국인, 국내 통신사 IT서비스개발기획자, 토익 850, 회화 중하, "
+    "브로큰 잉글리쉬 자주 사용, 미국 이민 후 IT 비즈니스 목표."
+)
 
-def create_feedback(target_sentence: str, recognized_text: str, pron_score: float, fluency_score: float, prosody_score: float) -> FeedbackResult:
+_FEEDBACK_SYSTEM = f"""
+{_USER_CONTEXT}
+당신은 미국 원어민 비즈니스 영어 코치입니다.
+발음 평가 결과를 받아 한국어로 피드백을 제공합니다.
+응답은 반드시 아래 JSON 형식으로만 반환하세요 (다른 텍스트 없이):
+{{
+  "issue": "가장 어색한 표현 지적 (200자 이내, 한국어)",
+  "alternatives": [
+    {{"en": "대안 표현 1", "ko": "이유 (한국어)", "context": "사용 상황 (한국어)"}},
+    {{"en": "대안 표현 2", "ko": "이유 (한국어)", "context": "사용 상황 (한국어)"}},
+    {{"en": "대안 표현 3", "ko": "이유 (한국어)", "context": "사용 상황 (한국어)"}}
+  ],
+  "importance": "IT 비즈니스 상황에서 중요도 1줄 (한국어)"
+}}
+""".strip()
+
+_CUSTOM_SYSTEM = f"""
+{_USER_CONTEXT}
+한국어 문장을 IT 비즈니스 영어 표현으로 변환합니다.
+반드시 아래 JSON 형식으로만 반환하세요:
+{{
+  "text_en": "영어 표현",
+  "situation_desc_ko": "사용 상황 설명 2문장 (한국어)",
+  "level": 1~3 사이 정수,
+  "category": "life" | "business" | "it" | "custom"
+}}
+""".strip()
+
+_SIMULATION_SYSTEM = f"""
+{_USER_CONTEXT}
+당신은 미국인 CTO입니다. IT 비즈니스 미팅 롤플레이를 진행합니다.
+규칙:
+- 3문장 이내로 응답
+- 브로큰 잉글리쉬나 어색한 표현 발견 시 [코치: 교정 코멘트] 형식으로 삽입
+- 반드시 질문으로 마무리
+반드시 아래 JSON 형식으로만 반환하세요:
+{{
+  "reply": "CTO 응답 (영어, 3문장 이내)",
+  "coach_comment_ko": "교정 코멘트 (한국어, 없으면 null)"
+}}
+""".strip()
+
+
+def _openai_client():
+    settings = get_settings()
+    if not settings.openai_api_key:
+        return None
+    from openai import OpenAI
+    return OpenAI(api_key=settings.openai_api_key)
+
+
+def _chat(system: str, user: str, temperature: float = 0.3) -> str:
+    client = _openai_client()
+    if client is None:
+        raise HTTPException(status_code=503, detail="OPENAI_API_KEY가 설정되지 않았습니다.")
+
+    settings = get_settings()
+    response = client.chat.completions.create(
+        model=settings.openai_gpt_model,
+        messages=[
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ],
+        max_tokens=300,
+        temperature=temperature,
+        response_format={"type": "json_object"},
+    )
+    return response.choices[0].message.content or ""
+
+
+def create_feedback(
+    target_sentence: str,
+    recognized_text: str,
+    pron_score: float,
+    fluency_score: float,
+    prosody_score: float,
+) -> FeedbackResult:
+    settings = get_settings()
+    if not settings.openai_api_key:
+        return _mock_feedback(target_sentence)
+
+    user_msg = (
+        f"목표 문장: {target_sentence}\n"
+        f"인식된 발화: {recognized_text}\n"
+        f"발음 점수: {pron_score:.0f} / 유창성: {fluency_score:.0f} / 운율: {prosody_score:.0f}"
+    )
+
+    try:
+        raw = _chat(_FEEDBACK_SYSTEM, user_msg, temperature=0.3)
+        data = json.loads(raw)
+        return FeedbackResult(
+            issue=data["issue"],
+            alternatives=[FeedbackAlternative(**a) for a in data["alternatives"]],
+            importance=data["importance"],
+        )
+    except (json.JSONDecodeError, KeyError) as e:
+        raise HTTPException(status_code=502, detail=f"GPT 응답 파싱 실패: {e}")
+
+
+def convert_custom_expression(text_ko: str, context: str | None) -> CustomExpressionResult:
+    settings = get_settings()
+    if not settings.openai_api_key:
+        return _mock_custom(text_ko)
+
+    user_msg = f"한국어 문장: {text_ko}"
+    if context:
+        user_msg += f"\n상황 힌트: {context}"
+
+    try:
+        raw = _chat(_CUSTOM_SYSTEM, user_msg, temperature=0.3)
+        data = json.loads(raw)
+        return CustomExpressionResult(
+            text_en=data["text_en"],
+            situation_desc_ko=data["situation_desc_ko"],
+            level=int(data["level"]),
+            category=data["category"],
+        )
+    except (json.JSONDecodeError, KeyError) as e:
+        raise HTTPException(status_code=502, detail=f"GPT 응답 파싱 실패: {e}")
+
+
+def create_simulation_reply(message: str, history: list[dict] | None = None) -> SimulationReply:
+    settings = get_settings()
+    if not settings.openai_api_key:
+        return _mock_simulation()
+
+    history_str = json.dumps(history or [], ensure_ascii=False)
+    user_msg = f"대화 이력: {history_str}\n사용자 발화: {message}"
+
+    try:
+        raw = _chat(_SIMULATION_SYSTEM, user_msg, temperature=0.8)
+        data = json.loads(raw)
+        return SimulationReply(
+            reply=data["reply"],
+            coach_comment_ko=data.get("coach_comment_ko"),
+        )
+    except (json.JSONDecodeError, KeyError) as e:
+        raise HTTPException(status_code=502, detail=f"GPT 응답 파싱 실패: {e}")
+
+
+# --- Mock fallbacks (API 키 미설정 시) ---
+
+def _mock_feedback(target_sentence: str) -> FeedbackResult:
     focus = "clarify" if "clarify" in target_sentence.lower() else target_sentence.split()[0]
     return FeedbackResult(
         issue=f"'{focus}' 발음과 문장 리듬을 조금 더 선명하게 만들면 비즈니스 미팅에서 신뢰감이 올라갑니다.",
@@ -14,18 +165,17 @@ def create_feedback(target_sentence: str, recognized_text: str, pron_score: floa
     )
 
 
-def convert_custom_expression(text_ko: str, context: str | None) -> CustomExpressionResult:
+def _mock_custom(text_ko: str) -> CustomExpressionResult:
     return CustomExpressionResult(
         text_en="I'd like to revisit the timeline because our current capacity is limited.",
-        situation_desc_ko=context or "업무 일정과 리소스 제약을 정중하게 설명하는 상황입니다.",
+        situation_desc_ko="업무 일정과 리소스 제약을 정중하게 설명하는 상황입니다. 미팅에서 일정 조율이 필요할 때 사용합니다.",
         level=3,
         category="business",
     )
 
 
-def create_simulation_reply(message: str) -> SimulationReply:
+def _mock_simulation() -> SimulationReply:
     return SimulationReply(
         reply="Interesting point. Could you walk me through how your platform handles data ingestion at scale?",
         coach_comment_ko="단순한 connect보다 integrates, handles, supports 같은 구체 동사를 쓰면 더 전문적으로 들립니다.",
     )
-
