@@ -35,6 +35,7 @@ export default function HomeScreen() {
   const { data: todayExpression } = expressionQuery;
 
   const hasCriticalError = expressionQuery.isError;
+  const hasNoExpression = !expressionQuery.isLoading && !expressionQuery.isError && todayExpression === null;
   const isInitialLoading = !progressStats && !todayExpression && (progressQuery.isLoading || expressionQuery.isLoading);
   const sessionExpression = todayExpression ?? (USE_MOCK ? mockExpressions.find((item) => item.id === 'exp-011') ?? mockExpressions[0] : undefined);
   const stats = progressStats ?? (USE_MOCK ? { ...mockStats, streak: mockStreak } : sessionExpression ? FALLBACK_STATS : undefined);
@@ -48,6 +49,19 @@ export default function HomeScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <ScreenState loading title="오늘 학습을 불러오는 중" message="실제 백엔드에서 학습 현황을 가져오고 있어요." />
+      </SafeAreaView>
+    );
+  }
+
+  if (hasNoExpression) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenState
+          title="오늘 학습할 표현이 없어요"
+          message="학습 표현을 추가하면 여기에 추천 표현이 나타납니다."
+          actionLabel="표현 추가하기"
+          onAction={() => router.push('/custom/add')}
+        />
       </SafeAreaView>
     );
   }

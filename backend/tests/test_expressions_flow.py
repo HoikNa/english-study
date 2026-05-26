@@ -4,8 +4,13 @@ from fastapi import HTTPException
 from app.config import get_settings
 from app.dependencies.auth import CurrentUser
 from app.database import reset_database_state_for_tests
-from app.routers import expressions
-from app.schemas import CustomExpressionRequest, CustomExpressionResult, Session
+from app.routers import expressions, review
+from app.schemas import (
+    CustomExpressionRequest,
+    CustomExpressionResult,
+    ReviewEnqueueRequest,
+    Session,
+)
 from app.services import gpt_coach, repository
 
 
@@ -67,6 +72,30 @@ def test_custom_expression_create_uses_selected_converted_text(monkeypatch, tmp_
     assert created.text_en == "The timeline needs adjustment."
     assert created.situation_ko == "선택한 변환 문장입니다."
     assert created.level == 2
+
+
+def test_delete_custom_expression_removes_review_queue_entry(monkeypatch, tmp_path):
+    use_temp_database(monkeypatch, tmp_path)
+
+    repository.create_user("cleanup-user", "cleanup@example.com", "Cleanup", "hash")
+    user = CurrentUser(id="cleanup-user", email="cleanup@example.com", nickname="Cleanup")
+
+    created = expressions.create_custom_expression(
+        CustomExpressionRequest(
+            text_ko="회의 일정 다시 잡고 싶어요.",
+            text_en="Can we reschedule the meeting?",
+            situation_desc_ko="회의 일정 재조율 요청 상황입니다.",
+            level=2,
+        )
+    )
+
+    review.enqueue(created.id, ReviewEnqueueRequest(score=60), current_user=user)
+    assert repository.get_review_queue(created.id, user_id=user.id) is not None
+
+    expressions.delete_custom_expression(created.id)
+
+    assert repository.get_review_queue(created.id, user_id=user.id) is None
+    assert all(item.expression_id != created.id for item in repository.due_review_items(user.id))
 
 
 def test_today_expression_skips_practiced_expression(monkeypatch, tmp_path):
