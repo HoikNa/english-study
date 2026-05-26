@@ -278,6 +278,10 @@ def delete_custom_expression(expression_id: str) -> None:
             """,
             (_deleted_value(True), expression_id),
         )
+        conn.execute(
+            "DELETE FROM review_queue WHERE expression_id = ?",
+            (expression_id,),
+        )
         conn.commit()
 
 

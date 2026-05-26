@@ -351,14 +351,21 @@ export function useExpression(id?: string) {
 export function useTodayExpression() {
   return useQuery({
     queryKey: learningKeys.todayExpression,
-    queryFn: async () => {
+    queryFn: async (): Promise<Expression | null> => {
       if (USE_MOCK) {
         await wait(120);
         return mockExpressions.find((expression) => expression.id === 'exp-011') ?? mockExpressions[0];
       }
 
-      const res = await apiClient.get<Expression | ApiExpression>('/expressions/today');
-      return normalizeExpression(res.data);
+      try {
+        const res = await apiClient.get<Expression | ApiExpression>('/expressions/today');
+        return normalizeExpression(res.data);
+      } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
     },
   });
 }
