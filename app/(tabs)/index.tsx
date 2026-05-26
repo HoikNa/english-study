@@ -3,41 +3,84 @@ import {
   View, Text, ScrollView, Pressable, StyleSheet, SafeAreaView,
 } from 'react-native';
 import { Href, router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, spacing, radius, shadow } from '@/lib/theme';
 import { Card } from '@/components/common/Card';
 import { SectionLabel } from '@/components/common/SectionLabel';
+import { ScreenState } from '@/components/common/ScreenState';
 import { PlayIcon, ChevronIcon } from '@/components/common/Icons';
 import { ProgressLine } from '@/components/common/ProgressLine';
 import { StreakBadge } from '@/components/home/StreakBadge';
 import { mockExpressions, mockReviewQueue, mockStats, mockStreak } from '@/lib/mocks/expressions.mock';
-import { useExpression, useProgressStats, useReviewToday } from '@/hooks/useLearningData';
+import { useProgressStats, useReviewToday, useTodayExpression } from '@/hooks/useLearningData';
+import { getApiErrorMessage, USE_MOCK } from '@/lib/api';
+import { useAuthStore } from '@/stores/auth.store';
 
 const SETTINGS_ROUTE = '/settings' as Href;
-const TODAY_EXPRESSION_ID = 'exp-011';
+const FALLBACK_STATS = {
+  pronScore: 0,
+  weeklyChange: 0,
+  totalExpressions: 0,
+  streak: { days: 0, weekFlags: [false, false, false, false, false, false, false] },
+};
 
 export default function HomeScreen() {
-  const { data: progressStats } = useProgressStats();
-  const { data: reviewToday } = useReviewToday();
-  const { data: todayExpression } = useExpression(TODAY_EXPRESSION_ID);
+  const insets = useSafeAreaInsets();
+  const user = useAuthStore((state) => state.user);
+  const progressQuery = useProgressStats();
+  const reviewQuery = useReviewToday();
+  const expressionQuery = useTodayExpression();
+  const { data: progressStats } = progressQuery;
+  const { data: reviewToday } = reviewQuery;
+  const { data: todayExpression } = expressionQuery;
 
-  const stats = progressStats ?? { ...mockStats, streak: mockStreak };
-  const reviewQueue = reviewToday?.items ?? mockReviewQueue;
-  const sessionExpression = todayExpression ?? mockExpressions.find((item) => item.id === TODAY_EXPRESSION_ID) ?? mockExpressions[0];
+  const hasCriticalError = expressionQuery.isError;
+  const isInitialLoading = !progressStats && !todayExpression && (progressQuery.isLoading || expressionQuery.isLoading);
+  const sessionExpression = todayExpression ?? (USE_MOCK ? mockExpressions.find((item) => item.id === 'exp-011') ?? mockExpressions[0] : undefined);
+  const stats = progressStats ?? (USE_MOCK ? { ...mockStats, streak: mockStreak } : sessionExpression ? FALLBACK_STATS : undefined);
+  const reviewQueue = reviewToday?.items ?? (USE_MOCK ? mockReviewQueue : []);
   const today = new Date();
   const dateLabel = today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
+  const openTodayShadowing = (expressionId: string) => router.push(`/shadowing/${expressionId}`);
+  const bottomContentPadding = 168 + Math.max(insets.bottom, 48);
+
+  if (isInitialLoading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenState loading title="오늘 학습을 불러오는 중" message="실제 백엔드에서 학습 현황을 가져오고 있어요." />
+      </SafeAreaView>
+    );
+  }
+
+  if (hasCriticalError || !stats || !sessionExpression) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenState
+          title="오늘 학습을 불러오지 못했어요"
+          message={expressionQuery.error ? getApiErrorMessage(expressionQuery.error) : '백엔드 연결 상태를 확인한 뒤 다시 시도해 주세요.'}
+          actionLabel="다시 시도"
+          onAction={() => {
+            progressQuery.refetch();
+            expressionQuery.refetch();
+            reviewQuery.refetch();
+          }}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, { paddingBottom: bottomContentPadding }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.dateLabel}>DAY 23 · {dateLabel}</Text>
+            <Text style={styles.dateLabel}>DAY {stats.streak.days} · {dateLabel}</Text>
             <Text style={styles.greeting}>
-              안녕하세요, <Text style={styles.name}>Hoik</Text>
+              안녕하세요, <Text style={styles.name}>{user?.name ?? 'Learner'}</Text>
             </Text>
           </View>
           <Pressable
@@ -46,7 +89,7 @@ export default function HomeScreen() {
             onPress={() => router.push(SETTINGS_ROUTE)}
             style={styles.avatar}
           >
-            <Text style={styles.avatarText}>H</Text>
+            <Text style={styles.avatarText}>{user?.name?.[0] ?? 'L'}</Text>
           </Pressable>
         </View>
 
@@ -57,7 +100,17 @@ export default function HomeScreen() {
 
         {/* Today's session card */}
         <View style={styles.section}>
-          <View style={[styles.sessionCard, shadow.cardFloat]}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`오늘의 학습 ${sessionExpression.situationKo} 쉐도잉 시작`}
+            hitSlop={6}
+            onPress={() => openTodayShadowing(sessionExpression.id)}
+            style={({ pressed }) => [
+              styles.sessionCard,
+              shadow.cardFloat,
+              pressed && styles.sessionCardPressed,
+            ]}
+          >
             {/* Dark top */}
             <View style={styles.sessionTop}>
               <View style={styles.sessionMeta}>
@@ -69,16 +122,13 @@ export default function HomeScreen() {
                 {sessionExpression.category === 'business' ? '비즈니스' : sessionExpression.category.toUpperCase()} · Level {sessionExpression.level} · {sessionExpression.chunks.length}개 청크
               </Text>
               <View style={styles.sessionActions}>
-                <Pressable
-                  style={({ pressed }) => [styles.startBtn, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
-                  onPress={() => router.push(`/shadowing/${sessionExpression.id}`)}
-                >
+                <View style={styles.startBtn}>
                   <PlayIcon size={14} />
                   <Text style={styles.startBtnText}>쉐도잉 시작</Text>
-                </Pressable>
-                <Pressable style={styles.chevronBtn}>
+                </View>
+                <View style={styles.chevronBtn}>
                   <ChevronIcon color="rgba(245,240,230,0.6)" />
-                </Pressable>
+                </View>
               </View>
             </View>
             {/* Stats bottom */}
@@ -102,7 +152,7 @@ export default function HomeScreen() {
                 <Text style={styles.statValue}>{stats.totalExpressions}</Text>
               </View>
             </View>
-          </View>
+          </Pressable>
         </View>
 
         {/* Review queue */}
@@ -110,11 +160,16 @@ export default function HomeScreen() {
           <View style={styles.sectionHeader}>
             <SectionLabel>복습 큐</SectionLabel>
             <Pressable onPress={() => router.push('/(tabs)/review')}>
-              <Text style={styles.seeAll}>{reviewQueue.length}개 대기 →</Text>
+              <Text style={styles.seeAll}>{reviewQueue.length}개 대기 · 최근 학습 →</Text>
             </Pressable>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewScroll}>
-            {reviewQueue.map((item) => (
+            {reviewQueue.length === 0 ? (
+              <View style={styles.emptyReviewCard}>
+                <Text style={styles.emptyReviewTitle}>오늘 복습 없음</Text>
+                <Text style={styles.emptyReviewSub}>카드를 열면 최근 학습 데이터와 다시 녹음 버튼을 볼 수 있어요.</Text>
+              </View>
+            ) : reviewQueue.map((item) => (
               <Pressable
                 key={item.id}
                 style={({ pressed }) => [
@@ -136,7 +191,7 @@ export default function HomeScreen() {
         </View>
 
         {/* Continue learning */}
-        <View style={[styles.section, { paddingBottom: 24 }]}>
+        <View style={styles.section}>
           <SectionLabel style={{ marginBottom: 10 }}>이어서 학습</SectionLabel>
           <View style={styles.continueList}>
             {[
@@ -194,6 +249,7 @@ const styles = StyleSheet.create({
     borderRadius: 22, overflow: 'hidden',
     borderWidth: 0.5, borderColor: C.line, backgroundColor: C.card,
   },
+  sessionCardPressed: { opacity: 0.92, transform: [{ scale: 0.99 }] },
   sessionTop: { backgroundColor: C.ink, padding: 16, paddingBottom: 18 },
   sessionMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   sessionTime: { fontSize: 11, color: 'rgba(245,240,230,0.5)', fontFamily: 'IBMPlexMono' },
@@ -224,6 +280,16 @@ const styles = StyleSheet.create({
   reviewScore: { fontSize: 11, fontWeight: '700', fontFamily: 'IBMPlexMonoSemiBold' },
   reviewEn: { fontSize: 12, fontWeight: '600', color: C.ink, marginTop: 6 },
   reviewKo: { fontSize: 10, color: C.muted, marginTop: 3 },
+  emptyReviewCard: {
+    width: 220,
+    padding: 14,
+    backgroundColor: C.card,
+    borderRadius: 14,
+    borderWidth: 0.5,
+    borderColor: C.line,
+  },
+  emptyReviewTitle: { color: C.ink, fontSize: 13, fontWeight: '800' },
+  emptyReviewSub: { color: C.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
 
   continueList: { gap: 8 },
   continueRow: {

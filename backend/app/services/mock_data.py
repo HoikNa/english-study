@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 from app.schemas import CategoryProgress, Expression, ReviewQueue, SituationItem
 
@@ -90,6 +90,5 @@ def due_review_items() -> list[ReviewQueue]:
     now = datetime.now(timezone.utc)
     return [
         item for item in REVIEW_QUEUE.values()
-        if datetime.fromisoformat(item.next_review_at) <= now + timedelta(days=1)
+        if datetime.fromisoformat(item.next_review_at) <= now
     ]
-

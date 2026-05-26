@@ -42,7 +42,12 @@ class AuthResponse(BaseModel):
     user: User
     user_id: str
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 
 class ExpressionPage(BaseModel):
@@ -81,6 +86,10 @@ class FeedbackResult(BaseModel):
 class CustomExpressionRequest(BaseModel):
     text_ko: str
     context: str | None = None
+    text_en: str | None = None
+    situation_desc_ko: str | None = None
+    level: int | None = Field(default=None, ge=1, le=3)
+    category: Category | None = None
 
 
 class CustomExpressionResult(BaseModel):
@@ -139,8 +148,20 @@ class ReviewToday(BaseModel):
     count: int
 
 
+class AccountExport(BaseModel):
+    user: User
+    sessions: list[Session]
+    review_queue: list[ReviewQueue]
+    generated_at: datetime = Field(default_factory=utc_now)
+
+
+class ReviewEnqueueRequest(BaseModel):
+    score: float = Field(default=55, ge=0, le=100)
+
+
 class ReviewUpdateRequest(BaseModel):
     grade: int = Field(ge=1, le=5)
+    score: float = Field(ge=0, le=100)
     repetition: int = Field(ge=0)
     interval_days: int = Field(ge=1)
     ease_factor: float = Field(ge=1.3)

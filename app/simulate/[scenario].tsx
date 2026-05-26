@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, StyleSheet, SafeAreaView, TextInput,
+  ActivityIndicator, View, Text, ScrollView, Pressable, StyleSheet, SafeAreaView, TextInput,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { C, spacing } from '@/lib/theme';
@@ -8,6 +8,8 @@ import { Chip } from '@/components/common/Chip';
 import { MicIcon, ChevronIcon } from '@/components/common/Icons';
 import { ChatBubble } from '@/components/simulate/ChatBubble';
 import { SuggestionPill } from '@/components/simulate/SuggestionPill';
+import { ScreenState } from '@/components/common/ScreenState';
+import { useStartSimulation, useSendSimulationMessage } from '@/hooks/useSimulation';
 
 interface Message {
   id: string;
@@ -30,29 +32,6 @@ const SCENARIOS: Record<string, { name: string; brief: string; avatar: string }>
   },
 };
 
-const INITIAL_MESSAGES: Message[] = [
-  {
-    id: '1', who: 'ai',
-    text: "Thanks for coming in. So I hear you've built telecom IoT platforms back in Korea — what's your take on integrating with our edge stack?",
-    time: '14:02',
-  },
-  {
-    id: '2', who: 'me',
-    text: "Yes, I have built IoT platform for 5G. Our system can connect with your edge.",
-    time: '14:03',
-    coachNote: {
-      from: "I have built IoT platform",
-      to: "I've led IoT platform development",
-      why: '경험·역량 어필 시 주도성 강조',
-    },
-  },
-  {
-    id: '3', who: 'ai',
-    text: "Got it. What kind of latency are we talking about for sensor-to-cloud round-trips on your platform?",
-    time: '14:03',
-  },
-];
-
 const SUGGESTIONS = [
   '"Our latency stays under 50ms..."',
   '"From an architectural standpoint..."',
@@ -67,40 +46,125 @@ function now() {
 export default function SimulateScreen() {
   const { scenario = 'iot-meeting' } = useLocalSearchParams<{ scenario: string }>();
   const info = SCENARIOS[scenario] ?? SCENARIOS['iot-meeting'];
+  const startSimulation = useStartSimulation();
+  const sendMessage = useSendSimulationMessage();
 
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
+  const [simulationId, setSimulationId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const scrollRef = useRef<ScrollView>(null);
-  const replyTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const [elapsed] = useState('3분 32초');
+  const [isBootstrapped, setIsBootstrapped] = useState(false);
+  const [startAttempt, setStartAttempt] = useState(0);
 
-  useEffect(() => () => {
-    replyTimersRef.current.forEach(clearTimeout);
-    replyTimersRef.current = [];
-  }, []);
+  useEffect(() => {
+    let cancelled = false;
 
-  function send(text?: string) {
+    async function bootstrap() {
+      setIsBootstrapped(false);
+      setMessages([]);
+      setSimulationId(null);
+      startSimulation.reset();
+      sendMessage.reset();
+
+      try {
+        const result = await startSimulation.mutateAsync(scenario);
+        if (cancelled) return;
+        setSimulationId(result.simulationId);
+        setMessages([{
+          id: 'ai-1',
+          who: 'ai',
+          text: result.firstMessage,
+          time: now(),
+        }]);
+      } catch {
+        // handled below via mutation state
+      } finally {
+        if (!cancelled) setIsBootstrapped(true);
+      }
+    }
+
+    bootstrap();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [scenario, startAttempt]);
+
+  const loading = startSimulation.isPending || !isBootstrapped;
+  const startError = startSimulation.error;
+  const sendError = sendMessage.error;
+  const canSend = Boolean(input.trim()) && Boolean(simulationId) && !sendMessage.isPending;
+
+  const historyPayload = useMemo(
+    () => messages.map((message) => ({
+      who: message.who,
+      text: message.text,
+      time: message.time,
+      coachNote: message.coachNote ?? null,
+    })),
+    [messages],
+  );
+
+  async function send(text?: string) {
     const t = (text ?? input).trim();
-    if (!t) return;
+    if (!t || !simulationId || sendMessage.isPending) return;
+    sendMessage.reset();
     setInput('');
 
     const myMsg: Message = { id: Date.now().toString(), who: 'me', text: t, time: now() };
     setMessages((prev) => [...prev, myMsg]);
+    scrollRef.current?.scrollToEnd({ animated: true });
 
-    const replyTimer = setTimeout(() => {
+    try {
+      const reply = await sendMessage.mutateAsync({
+        simulationId,
+        message: t,
+        history: [...historyPayload, { who: 'me', text: t, time: myMsg.time, coachNote: null }],
+      });
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
         who: 'ai',
-        text: "Interesting point. Could you walk me through how your platform handles data ingestion at scale?",
+        text: reply.reply,
         time: now(),
+        coachNote: reply.coachCommentKo
+          ? { from: t, to: reply.reply, why: reply.coachCommentKo }
+          : null,
       };
       setMessages((prev) => [...prev, aiMsg]);
       scrollRef.current?.scrollToEnd({ animated: true });
-      replyTimersRef.current = replyTimersRef.current.filter((timer) => timer !== replyTimer);
-    }, 1500);
-    replyTimersRef.current = [...replyTimersRef.current, replyTimer];
+    } catch {
+      setInput(t);
+    }
+  }
 
-    scrollRef.current?.scrollToEnd({ animated: true });
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenState
+          loading
+          title="시뮬레이션을 여는 중"
+          message="롤플레이 세션을 시작하고 있어요."
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (startError) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenState
+          title="시뮬레이션을 불러오지 못했어요"
+          message="백엔드 연결을 확인한 뒤 다시 시도해 주세요."
+          actionLabel="다시 시도"
+          onAction={() => {
+            startSimulation.reset();
+            sendMessage.reset();
+            setStartAttempt((attempt) => attempt + 1);
+          }}
+        />
+      </SafeAreaView>
+    );
   }
 
   return (
@@ -149,10 +213,24 @@ export default function SimulateScreen() {
             coachNote={message.coachNote}
           />
         ))}
+        {sendMessage.isPending && (
+          <ChatBubble
+            who="ai"
+            text="답변을 준비하고 있어요..."
+            time={now()}
+            avatar={info.avatar}
+          />
+        )}
       </ScrollView>
 
       {/* Composer */}
       <View style={styles.composer}>
+        {sendError && (
+          <View style={styles.composerError}>
+            <Text style={styles.composerErrorText}>메시지를 보내지 못했어요. 다시 시도해 주세요.</Text>
+          </View>
+        )}
+
         {/* Suggestions */}
         <ScrollView
           horizontal showsHorizontalScrollIndicator={false}
@@ -175,10 +253,23 @@ export default function SimulateScreen() {
             returnKeyType="send"
           />
           <Pressable
-            style={({ pressed }) => [styles.micBtn, pressed && { opacity: 0.8, transform: [{ scale: 0.94 }] }]}
+            accessibilityRole="button"
+            accessibilityLabel={input.trim() ? '메시지 보내기' : '음성 입력'}
+            style={({ pressed }) => [
+              styles.sendBtn,
+              !canSend && styles.sendBtnDisabled,
+              pressed && canSend && { opacity: 0.8, transform: [{ scale: 0.94 }] },
+            ]}
             onPress={() => send()}
+            disabled={!canSend}
           >
-            <MicIcon size={18} color="#fff" />
+            {sendMessage.isPending ? (
+              <ActivityIndicator color="#fff" />
+            ) : input.trim() ? (
+              <ChevronIcon color="#fff" size={18} />
+            ) : (
+              <MicIcon size={18} color="#fff" />
+            )}
           </Pressable>
         </View>
       </View>
@@ -222,6 +313,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(241,236,223,0)',
   },
   suggestScroll: { gap: 6, paddingBottom: 10 },
+  composerError: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 8,
+    backgroundColor: C.accentSoft,
+    borderRadius: 10,
+    borderWidth: 0.5,
+    borderColor: C.rose + '55',
+  },
+  composerErrorText: { fontSize: 11, color: C.rose, fontWeight: '600' },
   inputRow: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
     paddingHorizontal: 12, paddingVertical: 10,
@@ -229,8 +330,9 @@ const styles = StyleSheet.create({
     borderWidth: 0.5, borderColor: C.line,
   },
   input: { flex: 1, fontSize: 13, color: C.ink },
-  micBtn: {
+  sendBtn: {
     width: 36, height: 36, borderRadius: 999,
     backgroundColor: C.accent, alignItems: 'center', justifyContent: 'center',
   },
+  sendBtnDisabled: { backgroundColor: C.muted2 },
 });

@@ -3,20 +3,28 @@ import {
   ActivityIndicator, View, Text, ScrollView, Pressable, StyleSheet, SafeAreaView,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, spacing } from '@/lib/theme';
 import { Card } from '@/components/common/Card';
 import { SectionLabel } from '@/components/common/SectionLabel';
+import { ScreenState } from '@/components/common/ScreenState';
 import { ScoreRing } from '@/components/common/ScoreRing';
 import { ChevronIcon } from '@/components/common/Icons';
 import { DiffHighlight, WordResult } from '@/components/feedback/DiffHighlight';
 import { FeedbackCard } from '@/components/feedback/FeedbackCard';
 import { ScoreBar } from '@/components/feedback/ScoreBar';
 import { mockExpressions } from '@/lib/mocks/expressions.mock';
+import { getApiErrorMessage, USE_MOCK } from '@/lib/api';
+import { MOCK_RECORDING_URI } from '@/lib/recording';
 import { useAzurePronunciation, PronunciationResult } from '@/hooks/useAzurePronunciation';
 import { GptFeedbackResult, useGptFeedback } from '@/hooks/useGptFeedback';
-import { useCreateSession, useExpression } from '@/hooks/useLearningData';
+import { useCreateSession, useExpression, useExpressions } from '@/hooks/useLearningData';
 
 interface SubScore { label: string; value: number }
+
+const NEXT_ACTION_COLOR = '#0B5FFF';
+const NEXT_ACTION_BORDER = '#003EA8';
+const NEXT_ACTION_DISABLED = '#7F8AA3';
 
 function getWordStatus(word: PronunciationResult['words'][number]): WordResult['status'] {
   if (word.errorType !== 'None' || word.accuracyScore < 60) return 'bad';
@@ -32,8 +40,11 @@ function getComment(score: number) {
 
 export default function FeedbackScreen() {
   const { expressionId, audioUri } = useLocalSearchParams<{ expressionId?: string; audioUri?: string }>();
-  const { data: fetchedExpression } = useExpression(expressionId);
-  const expression = fetchedExpression ?? mockExpressions.find((e) => e.id === expressionId) ?? mockExpressions[3];
+  const insets = useSafeAreaInsets();
+  const expressionQuery = useExpression(expressionId);
+  const { data: fetchedExpression } = expressionQuery;
+  const expression = fetchedExpression ?? (USE_MOCK ? mockExpressions.find((e) => e.id === expressionId) ?? mockExpressions[3] : undefined);
+  const expressionsQuery = useExpressions(expression ? { limit: 100 } : {});
   const pronunciation = useAzurePronunciation();
   const coach = useGptFeedback();
   const createSession = useCreateSession();
@@ -46,6 +57,8 @@ export default function FeedbackScreen() {
     let cancelled = false;
 
     async function runAnalysis() {
+      if (!expression) return;
+
       setPronResult(null);
       setCoachResult(null);
       pronunciation.reset();
@@ -54,7 +67,7 @@ export default function FeedbackScreen() {
 
       try {
         const nextPronResult = await pronunciation.mutateAsync({
-          audioUri: audioUri ?? 'mock-recording.wav',
+          audioUri: audioUri ?? MOCK_RECORDING_URI,
           referenceText: expression.textEn,
           expressionId: expression.id,
         });
@@ -83,7 +96,7 @@ export default function FeedbackScreen() {
     return () => {
       cancelled = true;
     };
-  }, [analysisRun, audioUri, expression.id, expression.textEn]);
+  }, [analysisRun, audioUri, expression?.id, expression?.textEn]);
 
   const isAnalyzing = pronunciation.isPending || coach.isPending || createSession.isPending;
   const error = pronunciation.error ?? coach.error ?? createSession.error;
@@ -102,8 +115,49 @@ export default function FeedbackScreen() {
   ), [pronResult]);
   const focusWord = words.find((word) => word.status === 'bad')?.word
     ?? words.find((word) => word.status === 'warn')?.word
-    ?? expression.chunks[0]?.split(' ')[0]
+    ?? expression?.chunks[0]?.split(' ')[0]
     ?? 'focus';
+  const nextExpression = useMemo(() => {
+    if (!expression) return undefined;
+    const expressions = expressionsQuery.data?.items ?? (USE_MOCK ? mockExpressions : []);
+    const sameCategory = expressions.filter((item) => item.category === expression.category);
+    const candidates = sameCategory.length > 1 ? sameCategory : expressions;
+    const currentIndex = candidates.findIndex((item) => item.id === expression.id);
+    if (currentIndex < 0) return candidates.find((item) => item.id !== expression.id);
+    return candidates[(currentIndex + 1) % candidates.length];
+  }, [expression, expressionsQuery.data?.items]);
+  const canGoNext = Boolean(nextExpression && nextExpression.id !== expression?.id);
+
+  function goToNextExpression() {
+    if (expressionsQuery.isLoading || expressionsQuery.isFetching) return;
+
+    if (canGoNext && nextExpression) {
+      router.replace(`/shadowing/${nextExpression.id}`);
+      return;
+    }
+    router.replace('/(tabs)/categories');
+  }
+
+  if (!expression && expressionQuery.isLoading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenState loading title="표현을 불러오는 중" message="분석할 쉐도잉 문장을 확인하고 있어요." />
+      </SafeAreaView>
+    );
+  }
+
+  if (!expression || expressionQuery.isError) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenState
+          title="표현을 불러오지 못했어요"
+          message={expressionQuery.error ? getApiErrorMessage(expressionQuery.error) : '백엔드 연결을 확인한 뒤 다시 시도해 주세요.'}
+          actionLabel="다시 시도"
+          onAction={() => expressionQuery.refetch()}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -113,15 +167,32 @@ export default function FeedbackScreen() {
           <ChevronIcon dir="left" color={C.ink} size={20} />
         </Pressable>
         <Text style={styles.title} numberOfLines={1}>{expression.situationKo}</Text>
-        <Text style={styles.engineLabel}>{createSession.isSuccess ? '저장됨' : 'AZURE · GPT-4o'}</Text>
+        {pronResult ? (
+          <Pressable
+            style={({ pressed }) => [
+              styles.headerNextBtn,
+              (expressionsQuery.isLoading || expressionsQuery.isFetching) && styles.headerNextBtnDisabled,
+              pressed && { opacity: 0.8 },
+            ]}
+            onPress={goToNextExpression}
+            disabled={expressionsQuery.isLoading || expressionsQuery.isFetching}
+          >
+            <Text style={styles.headerNextText}>{canGoNext ? '다음' : '목록'}</Text>
+          </Pressable>
+        ) : (
+          <Text style={styles.engineLabel}>{createSession.isSuccess ? '저장됨' : 'AZURE · GPT-4o'}</Text>
+        )}
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: 128 + Math.max(insets.bottom, 24) }]}
+        showsVerticalScrollIndicator={false}
+      >
         {error && (
           <View style={styles.section}>
             <Card padding={16}>
               <SectionLabel style={{ marginBottom: 8 }}>분석 실패</SectionLabel>
-              <Text style={styles.errorText}>AI 분석을 완료하지 못했어요. 네트워크나 API 설정을 확인한 뒤 다시 시도해 주세요.</Text>
+              <Text style={styles.errorText}>{getApiErrorMessage(error)}</Text>
               <Pressable
                 style={({ pressed }) => [styles.retryAnalysisBtn, pressed && { opacity: 0.8 }]}
                 onPress={() => setAnalysisRun((run) => run + 1)}
@@ -164,6 +235,21 @@ export default function FeedbackScreen() {
                 <ScoreBar key={s.label} label={s.label} value={s.value} />
               ))}
             </View>
+            <Pressable
+              style={({ pressed }) => [
+                styles.inlineNextBtn,
+                (expressionsQuery.isLoading || expressionsQuery.isFetching) && styles.nextBtnDisabled,
+                pressed && { opacity: 0.86, transform: [{ scale: 0.99 }] },
+              ]}
+              onPress={goToNextExpression}
+              disabled={expressionsQuery.isLoading || expressionsQuery.isFetching}
+            >
+              <Text style={styles.nextText}>
+                {expressionsQuery.isLoading || expressionsQuery.isFetching
+                  ? '다음 표현 준비 중'
+                  : canGoNext ? '다음 표현으로 이동 →' : '카테고리에서 더 보기 →'}
+              </Text>
+            </Pressable>
           </View>
         </View>
         )}
@@ -189,24 +275,6 @@ export default function FeedbackScreen() {
         </View>
         )}
 
-        {/* Action buttons */}
-        {pronResult && (
-        <View style={[styles.section, styles.actionRow]}>
-          <Pressable
-            style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.7 }]}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.retryText}>다시 도전</Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.nextBtn, pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] }]}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.nextText}>다음 표현 →</Text>
-          </Pressable>
-        </View>
-        )}
-
         {isAnalyzing && pronResult && (
           <View style={styles.savingRow}>
             <ActivityIndicator color={C.muted} size="small" />
@@ -214,6 +282,35 @@ export default function FeedbackScreen() {
           </View>
         )}
       </ScrollView>
+
+      {pronResult && (
+        <View style={[styles.actionDock, { paddingBottom: 14 + Math.max(insets.bottom, 18) }]}>
+          <Text style={styles.dockEyebrow}>다음 학습</Text>
+          <Pressable
+            style={({ pressed }) => [
+              styles.nextBtn,
+              (expressionsQuery.isLoading || expressionsQuery.isFetching) && styles.nextBtnDisabled,
+              {
+                backgroundColor: expressionsQuery.isLoading || expressionsQuery.isFetching
+                  ? NEXT_ACTION_DISABLED
+                  : NEXT_ACTION_COLOR,
+                borderColor: expressionsQuery.isLoading || expressionsQuery.isFetching
+                  ? NEXT_ACTION_DISABLED
+                  : NEXT_ACTION_BORDER,
+              },
+              pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
+            ]}
+            onPress={goToNextExpression}
+            disabled={expressionsQuery.isLoading || expressionsQuery.isFetching}
+          >
+            <Text style={styles.nextText}>
+              {expressionsQuery.isLoading || expressionsQuery.isFetching
+                ? '다음 표현 준비 중'
+                : canGoNext ? '다음 표현 →' : '카테고리 보기 →'}
+            </Text>
+          </Pressable>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -225,12 +322,31 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.screenH, paddingVertical: 12,
     borderBottomWidth: 0.5, borderBottomColor: C.line,
   },
-  backBtn: { padding: 4 },
+  backBtn: { width: 40, padding: 4 },
   title: { flex: 1, fontSize: 14, fontWeight: '600', textAlign: 'center' },
-  engineLabel: { fontSize: 11, color: C.muted, fontFamily: 'IBMPlexMono' },
+  engineLabel: {
+    width: 76,
+    paddingRight: 32,
+    fontSize: 11,
+    color: C.muted,
+    fontFamily: 'IBMPlexMono',
+    textAlign: 'right',
+  },
+  headerNextBtn: {
+    width: 76,
+    minHeight: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+    backgroundColor: NEXT_ACTION_COLOR,
+    borderWidth: 1,
+    borderColor: NEXT_ACTION_BORDER,
+  },
+  headerNextBtnDisabled: { backgroundColor: NEXT_ACTION_DISABLED, borderColor: NEXT_ACTION_DISABLED },
+  headerNextText: { fontSize: 12, fontWeight: '800', color: C.paper },
 
-  scroll: { paddingBottom: 40 },
-  section: { paddingHorizontal: spacing.screenH, marginTop: 14 },
+  scroll: { paddingTop: 14 },
+  section: { paddingHorizontal: spacing.screenH, marginTop: 0, marginBottom: 14 },
 
   loadingCard: {
     alignItems: 'center',
@@ -275,18 +391,57 @@ const styles = StyleSheet.create({
   aiTagText: { fontSize: 9, fontWeight: '800', color: C.paper },
 
   // Actions
-  actionRow: { flexDirection: 'row', gap: 8 },
-  retryBtn: {
-    flex: 1, padding: 14, alignItems: 'center',
-    backgroundColor: C.card, borderRadius: 14,
-    borderWidth: 0.5, borderColor: C.line2,
+  actionDock: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    gap: 10,
+    paddingTop: 12,
+    paddingHorizontal: spacing.screenH,
+    backgroundColor: '#101E3F',
+    borderTopWidth: 1,
+    borderTopColor: '#264A96',
+    zIndex: 20,
+    elevation: 20,
   },
-  retryText: { fontSize: 13, fontWeight: '600', color: C.ink },
+  dockEyebrow: {
+    marginBottom: 8,
+    fontSize: 11,
+    fontWeight: '800',
+    color: 'rgba(255,255,255,0.72)',
+    fontFamily: 'IBMPlexMonoSemiBold',
+  },
+  inlineNextBtn: {
+    minHeight: 54,
+    marginTop: 16,
+    paddingVertical: 15,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: NEXT_ACTION_COLOR,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: NEXT_ACTION_BORDER,
+  },
   nextBtn: {
-    flex: 2, padding: 14, alignItems: 'center',
-    backgroundColor: C.ink, borderRadius: 14,
+    minHeight: 62,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: NEXT_ACTION_COLOR,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: NEXT_ACTION_BORDER,
+    shadowColor: '#001B52',
+    shadowOpacity: 0.24,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 7 },
+    elevation: 10,
   },
-  nextText: { fontSize: 13, fontWeight: '600', color: C.paper },
+  nextBtnDisabled: { backgroundColor: NEXT_ACTION_DISABLED, borderColor: NEXT_ACTION_DISABLED },
+  nextText: { fontSize: 15, fontWeight: '800', color: '#FFFFFF', fontFamily: 'InterBold' },
   savingRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 12 },
   savingText: { fontSize: 11, color: C.muted, fontFamily: 'IBMPlexMono' },
 });

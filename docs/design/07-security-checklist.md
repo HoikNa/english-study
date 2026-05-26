@@ -8,7 +8,7 @@
 | 상태 | 항목 | 구현 방법 |
 |---|---|---|
 | ☐ | HTTPS 강제 | API Gateway + CloudFront 자동. Expo 앱은 ATS(iOS) / Network Security Config(Android) 기본 적용 |
-| ☐ | CORS 화이트리스트 | FastAPI CORSMiddleware에 Expo 앱 스킴(exp://, speakreadymy://)만 허용. localhost는 개발 환경만 |
+| ☐ | CORS 화이트리스트 | FastAPI CORSMiddleware에 Expo 앱 스킴(exp://, speakready://)만 허용. localhost는 개발 환경만 |
 | ☐ | API Gateway 스로틀링 | 초당 10 req/user, 일 1000 req/user. AI 엔드포인트는 초당 3 req로 별도 제한 |
 | ☐ | TLS 1.2 이상 강제 | API Gateway 기본 정책. TLS 1.0/1.1 비활성화 확인 |
 

@@ -1,0 +1,42 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_USE_MOCK": "false",
+        "EXPO_PUBLIC_API_URL": "https://d6f9adjh85.execute-api.ap-northeast-2.amazonaws.com",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://47b31a1a1b7c01588062c53650251d20@o4511331288416256.ingest.us.sentry.io/4511456272908288"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_USE_MOCK": "false",
+        "EXPO_PUBLIC_API_URL": "https://d6f9adjh85.execute-api.ap-northeast-2.amazonaws.com",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://47b31a1a1b7c01588062c53650251d20@o4511331288416256.ingest.us.sentry.io/4511456272908288"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_USE_MOCK": "false",
+        "EXPO_PUBLIC_API_URL": "https://d6f9adjh85.execute-api.ap-northeast-2.amazonaws.com",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://47b31a1a1b7c01588062c53650251d20@o4511331288416256.ingest.us.sentry.io/4511456272908288"
+      },
+      "android": {
+        "buildType": "app-bundle",
+        "autoIncrement": "versionCode"
+      }
+    }
+  }
+}

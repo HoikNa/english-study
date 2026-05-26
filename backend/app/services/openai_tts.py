@@ -1,3 +1,4 @@
+import base64
 import hashlib
 from urllib.parse import quote
 
@@ -57,16 +58,21 @@ def _generate_tts(text: str, speed: float, settings) -> bytes:
 
 def _upload_to_supabase(cache_key: str, audio_bytes: bytes, settings) -> str:
     if not settings.supabase_url or not settings.supabase_service_key:
-        # Supabase 미설정 시 data URL로 반환 (개발 환경)
-        import base64
-        b64 = base64.b64encode(audio_bytes).decode()
-        return f"data:audio/mpeg;base64,{b64}"
+        return _audio_data_url(audio_bytes)
 
-    from supabase import create_client
-    client = create_client(settings.supabase_url, settings.supabase_service_key)
-    client.storage.from_(settings.supabase_storage_bucket).upload(
-        path=cache_key,
-        file=audio_bytes,
-        file_options={"content-type": "audio/mpeg", "upsert": "true"},
-    )
-    return client.storage.from_(settings.supabase_storage_bucket).get_public_url(cache_key)
+    try:
+        from supabase import create_client
+        client = create_client(settings.supabase_url, settings.supabase_service_key)
+        client.storage.from_(settings.supabase_storage_bucket).upload(
+            path=cache_key,
+            file=audio_bytes,
+            file_options={"content-type": "audio/mpeg", "upsert": "true"},
+        )
+        return client.storage.from_(settings.supabase_storage_bucket).get_public_url(cache_key)
+    except Exception:
+        return _audio_data_url(audio_bytes)
+
+
+def _audio_data_url(audio_bytes: bytes) -> str:
+    b64 = base64.b64encode(audio_bytes).decode()
+    return f"data:audio/mpeg;base64,{b64}"

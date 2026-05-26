@@ -10,20 +10,18 @@ _USER_CONTEXT = (
     "브로큰 잉글리쉬 자주 사용, 미국 이민 후 IT 비즈니스 목표."
 )
 
-_FEEDBACK_SYSTEM = f"""
-{_USER_CONTEXT}
-당신은 미국 원어민 비즈니스 영어 코치입니다.
-발음 평가 결과를 받아 한국어로 피드백을 제공합니다.
-응답은 반드시 아래 JSON 형식으로만 반환하세요 (다른 텍스트 없이):
-{{
-  "issue": "가장 어색한 표현 지적 (200자 이내, 한국어)",
+_FEEDBACK_SYSTEM = """
+45세 한국인 IT서비스기획자에게 미국 비즈니스 영어 피드백을 한국어로 준다.
+JSON만 출력:
+{
+  "issue": "가장 어색한 발음/표현 지적. 100자 이내",
   "alternatives": [
-    {{"en": "대안 표현 1", "ko": "이유 (한국어)", "context": "사용 상황 (한국어)"}},
-    {{"en": "대안 표현 2", "ko": "이유 (한국어)", "context": "사용 상황 (한국어)"}},
-    {{"en": "대안 표현 3", "ko": "이유 (한국어)", "context": "사용 상황 (한국어)"}}
+    {"en": "대안 표현 1", "ko": "이유 20자 이내", "context": "사용 상황"},
+    {"en": "대안 표현 2", "ko": "이유 20자 이내", "context": "사용 상황"},
+    {"en": "대안 표현 3", "ko": "이유 20자 이내", "context": "사용 상황"}
   ],
-  "importance": "IT 비즈니스 상황에서 중요도 1줄 (한국어)"
-}}
+  "importance": "IT 비즈니스 중요도. 60자 이내"
+}
 """.strip()
 
 _CUSTOM_SYSTEM = f"""
@@ -61,19 +59,19 @@ def _openai_client():
     return OpenAI(api_key=settings.openai_api_key)
 
 
-def _chat(system: str, user: str, temperature: float = 0.3) -> str:
+def _chat(system: str, user: str, temperature: float = 0.3, model: str | None = None, max_tokens: int = 300) -> str:
     client = _openai_client()
     if client is None:
         raise HTTPException(status_code=503, detail="OPENAI_API_KEY가 설정되지 않았습니다.")
 
     settings = get_settings()
     response = client.chat.completions.create(
-        model=settings.openai_gpt_model,
+        model=model or settings.openai_gpt_model,
         messages=[
             {"role": "system", "content": system},
             {"role": "user", "content": user},
         ],
-        max_tokens=300,
+        max_tokens=max_tokens,
         temperature=temperature,
         response_format={"type": "json_object"},
     )
@@ -92,13 +90,19 @@ def create_feedback(
         return _mock_feedback(target_sentence)
 
     user_msg = (
-        f"목표 문장: {target_sentence}\n"
-        f"인식된 발화: {recognized_text}\n"
-        f"발음 점수: {pron_score:.0f} / 유창성: {fluency_score:.0f} / 운율: {prosody_score:.0f}"
+        f"target={target_sentence}\n"
+        f"said={recognized_text}\n"
+        f"scores=pron{pron_score:.0f},fluency{fluency_score:.0f},prosody{prosody_score:.0f}"
     )
 
     try:
-        raw = _chat(_FEEDBACK_SYSTEM, user_msg, temperature=0.3)
+        raw = _chat(
+            _FEEDBACK_SYSTEM,
+            user_msg,
+            temperature=0.2,
+            model=settings.openai_feedback_model,
+            max_tokens=220,
+        )
         data = json.loads(raw)
         return FeedbackResult(
             issue=data["issue"],

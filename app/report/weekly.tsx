@@ -2,55 +2,44 @@ import React from 'react';
 import {
   View, Text, ScrollView, Pressable, StyleSheet, SafeAreaView,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { C, spacing, shadow } from '@/lib/theme';
 import { ChevronIcon } from '@/components/common/Icons';
 import { SectionLabel } from '@/components/common/SectionLabel';
+import { ScreenState } from '@/components/common/ScreenState';
 import { MetricTile } from '@/components/common/MetricTile';
 import { GoalList } from '@/components/report/GoalList';
 import { PatternCard, ReportPattern } from '@/components/report/PatternCard';
-
-const MOCK_PATTERNS: ReportPattern[] = [
-  {
-    rank: '01',
-    bad: 'I have built IoT platform for 5G',
-    good: "I've led IoT platform development for 5G",
-    why: '경험·역량 어필 시 주도성 강조. "built"보다 "led"가 시니어 포지션에 맞습니다.',
-    category: 'Leadership tone',
-  },
-  {
-    rank: '02',
-    bad: 'Our system can connect with your edge',
-    good: 'Our platform integrates seamlessly with your edge infrastructure',
-    why: '기술 역량은 구체적 동사와 명사로. "connect"는 너무 단순하게 들립니다.',
-    category: 'Technical precision',
-  },
-  {
-    rank: '03',
-    bad: "I think it is maybe possible",
-    good: "That's certainly feasible — let me outline the approach",
-    why: '불확실한 표현은 신뢰도를 낮춥니다. 자신감 있게 다음 액션으로 이어가세요.',
-    category: 'Confidence register',
-  },
-];
-
-const MOCK_STATS = {
-  quote: "Progress is built one session at a time.",
-  weekRange: '5월 16일 – 22일',
-  sessionsCompleted: 12,
-  expressionsPracticed: 34,
-  avgScore: 76,
-  scoreChange: +8,
-  topCategory: 'IT 미팅',
-};
-
-const WEEKLY_GOALS = [
-  { mark: '01', text: '평균 점수 80pt 달성' },
-  { mark: '02', text: '7일 연속 스트릭 유지' },
-  { mark: '03', text: '커스텀 표현 3개 추가' },
-];
+import { useWeeklyReport } from '@/hooks/useLearningData';
 
 export default function WeeklyReportScreen() {
+  const { week } = useLocalSearchParams<{ week?: string }>();
+  const weeklyQuery = useWeeklyReport(week);
+  const report = weeklyQuery.data;
+
+  if (!report && weeklyQuery.isLoading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenState loading title="주간 리포트를 불러오는 중" message="이번 주 세션과 패턴을 집계하고 있어요." />
+      </SafeAreaView>
+    );
+  }
+
+  if (!report || weeklyQuery.isError) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenState
+          title="주간 리포트를 불러오지 못했어요"
+          message="백엔드 연결을 확인한 뒤 다시 시도해 주세요."
+          actionLabel="다시 시도"
+          onAction={() => weeklyQuery.refetch()}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  const patterns: ReportPattern[] = report.patterns;
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -61,18 +50,18 @@ export default function WeeklyReportScreen() {
           </Pressable>
 
           <View style={styles.heroContent}>
-            <Text style={styles.weekLabel}>{MOCK_STATS.weekRange} · 주간 리포트</Text>
-            <Text style={styles.heroQuote}>"{MOCK_STATS.quote}"</Text>
+            <Text style={styles.weekLabel}>{report.weekRange} · 주간 리포트</Text>
+            <Text style={styles.heroQuote}>이번 주 학습 패턴을 정리했어요.</Text>
 
             {/* Stats row */}
             <View style={styles.statsRow}>
-              <MetricTile dark value={MOCK_STATS.sessionsCompleted} label="세션" />
+              <MetricTile dark value={report.totalSessions} label="세션" />
               <View style={styles.statDivider} />
-              <MetricTile dark value={MOCK_STATS.expressionsPracticed} label="표현 연습" />
+              <MetricTile dark value={report.expressionsPracticed} label="표현 연습" />
               <View style={styles.statDivider} />
-              <MetricTile dark value={MOCK_STATS.avgScore} suffix=" pts" label="평균 점수" />
+              <MetricTile dark value={report.avgScore} suffix=" pts" label="평균 점수" />
               <View style={styles.statDivider} />
-              <MetricTile dark accent value={`+${MOCK_STATS.scoreChange}`} label="점수 향상" />
+              <MetricTile dark accent value={`${report.scoreChange >= 0 ? '+' : ''}${report.scoreChange}`} label="점수 향상" />
             </View>
           </View>
         </View>
@@ -84,7 +73,12 @@ export default function WeeklyReportScreen() {
             <Text style={styles.patternSubtitle}>이번 주 AI가 감지한 개선 포인트</Text>
           </View>
 
-          {MOCK_PATTERNS.map((pattern) => (
+          {patterns.length === 0 ? (
+            <View style={styles.emptyPatterns}>
+              <Text style={styles.emptyPatternsTitle}>아직 리포트를 만들 데이터가 부족해요</Text>
+              <Text style={styles.emptyPatternsText}>이번 주에 몇 개의 세션을 쌓으면 패턴과 목표가 더 정확해집니다.</Text>
+            </View>
+          ) : patterns.map((pattern) => (
             <PatternCard key={pattern.rank} pattern={pattern} />
           ))}
 
@@ -99,7 +93,7 @@ export default function WeeklyReportScreen() {
           {/* Next week target */}
           <View style={styles.nextWeekCard}>
             <SectionLabel style={{ marginBottom: 8 }}>다음 주 목표</SectionLabel>
-            <GoalList goals={WEEKLY_GOALS} />
+            <GoalList goals={report.goals} />
           </View>
 
           <View style={{ height: 40 }} />
@@ -141,6 +135,17 @@ const styles = StyleSheet.create({
 
   patternHeader: { paddingHorizontal: spacing.screenH, marginBottom: 16, gap: 4 },
   patternSubtitle: { fontSize: 12, color: C.muted, marginTop: 2 },
+  emptyPatterns: {
+    marginHorizontal: spacing.screenH,
+    marginBottom: 14,
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: C.card,
+    borderWidth: 0.5,
+    borderColor: C.line,
+  },
+  emptyPatternsTitle: { fontSize: 14, fontWeight: '700', color: C.ink, marginBottom: 4 },
+  emptyPatternsText: { fontSize: 12, color: C.muted, lineHeight: 18 },
 
   ctaBtn: {
     marginHorizontal: spacing.screenH, marginTop: 4, marginBottom: 20,

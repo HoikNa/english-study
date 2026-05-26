@@ -3,9 +3,8 @@
 FastAPI scaffold for the API described in `docs/design/02-api-spec.md` and
 `docs/design/04-backend-architecture.md`.
 
-This stage uses a local SQLite repository and mock AI services so the Expo app
-can exercise the real API contract before Supabase, Azure Speech, and OpenAI are
-connected.
+This stage uses SQLite for local development and can use PostgreSQL/Supabase in
+deployment. AI services fall back to mock responses when keys are not configured.
 
 ## Run locally
 
@@ -30,7 +29,7 @@ EXPO_PUBLIC_API_URL=http://localhost:8000
 - Mock pronunciation, GPT feedback, TTS URL, custom expression, simulation
 - Session create/list persisted to SQLite
 - Review queue today/enqueue/update persisted to SQLite
-- Progress stats and weekly report mock
+- Progress stats and weekly report aggregation from session history
 - SM-2 scheduler unit tests
 
 ## Local database
@@ -42,4 +41,52 @@ backend/.data/speakready.sqlite3
 ```
 
 Override it with `DATABASE_URL=sqlite:///absolute/or/relative/path.sqlite3`.
-The local backend currently supports SQLite URLs only.
+For deployment, set `DATABASE_URL` to a PostgreSQL-compatible Supabase pooler
+connection string. Prefer the transaction pooler for Lambda/serverless:
+
+```bash
+DATABASE_URL=postgres://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+```
+
+The app creates its required tables and seed expressions on startup.
+
+## Lambda deployment scaffold
+
+`backend/template.yaml` defines the FastAPI Lambda, API Gateway HTTP API, and
+runtime environment variables for AWS SAM. It also attaches an ffmpeg Lambda
+layer at `/opt/bin/ffmpeg` for compressed audio conversion before Azure
+pronunciation assessment.
+
+Create the local ffmpeg layer artifact before building:
+
+```bash
+mkdir -p .lambda-layers/ffmpeg/bin /tmp/english-study-ffmpeg
+curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz \
+  -o /tmp/english-study-ffmpeg/ffmpeg-release-amd64-static.tar.xz
+tar -xf /tmp/english-study-ffmpeg/ffmpeg-release-amd64-static.tar.xz \
+  -C /tmp/english-study-ffmpeg
+cp /tmp/english-study-ffmpeg/ffmpeg-*-amd64-static/ffmpeg \
+  .lambda-layers/ffmpeg/bin/ffmpeg
+chmod 755 .lambda-layers/ffmpeg/bin/ffmpeg
+```
+
+Minimal package/deploy flow:
+
+```bash
+cd backend
+sam build
+sam deploy --guided \
+  --parameter-overrides \
+  DatabaseUrl="$DATABASE_URL" \
+  JwtSecret="$JWT_SECRET" \
+  AzureSpeechKey="$AZURE_SPEECH_KEY" \
+  OpenAiApiKey="$OPENAI_API_KEY" \
+  SupabaseUrl="$SUPABASE_URL" \
+  SupabaseServiceKey="$SUPABASE_SERVICE_KEY"
+```
+
+Current deployed stack output:
+
+```bash
+https://d6f9adjh85.execute-api.ap-northeast-2.amazonaws.com
+```
