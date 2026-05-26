@@ -3,12 +3,14 @@ import {
   View, Text, ScrollView, Pressable, StyleSheet, SafeAreaView, TextInput, ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { C, spacing, shadow } from '@/lib/theme';
 import { ChevronIcon, CheckIcon } from '@/components/common/Icons';
 import { SectionLabel } from '@/components/common/SectionLabel';
 import { Card } from '@/components/common/Card';
 import { USE_MOCK, apiClient } from '@/lib/api';
 import { ToneOption, ToneOptionCard } from '@/components/custom/ToneOptionCard';
+import { learningKeys } from '@/hooks/useLearningData';
 
 const MOCK_TONES: ToneOption[] = [
   {
@@ -35,44 +37,78 @@ const MOCK_TONES: ToneOption[] = [
 ];
 
 export default function CustomAddScreen() {
+  const queryClient = useQueryClient();
   const [koreanInput, setKoreanInput] = useState('');
   const [contextInput, setContextInput] = useState('');
   const [tones, setTones] = useState<ToneOption[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
   const [added, setAdded] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function generateTones() {
     if (!koreanInput.trim()) return;
     setLoading(true);
     setTones(null);
     setSelected(null);
+    setError(null);
 
-    if (USE_MOCK) {
-      await new Promise((r) => setTimeout(r, 1200));
-      setTones(MOCK_TONES);
-    } else {
-      const res = await apiClient.post<{ text_en: string; situation_desc_ko: string }>('/ai/custom-expression', {
-        text_ko: koreanInput,
-        context: contextInput,
-      });
-      setTones([
-        {
-          id: 'direct',
-          label: 'Generated',
-          labelKo: 'AI 변환',
-          text: res.data.text_en,
-          note: res.data.situation_desc_ko,
-        },
-      ]);
+    try {
+      if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 1200));
+        setTones(MOCK_TONES);
+      } else {
+        const res = await apiClient.post<{ text_en: string; situation_desc_ko: string }>('/ai/custom-expression', {
+          text_ko: koreanInput,
+          context: contextInput,
+        });
+        setTones([
+          {
+            id: 'direct',
+            label: 'Generated',
+            labelKo: 'AI 변환',
+            text: res.data.text_en,
+            note: res.data.situation_desc_ko,
+          },
+        ]);
+      }
+    } catch {
+      setError('AI 변환에 실패했어요. API 설정과 네트워크를 확인해 주세요.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
-  function addToQueue() {
+  async function addToQueue() {
     if (!selected) return;
-    setAdded(true);
-    setTimeout(() => router.back(), 800);
+    setIsAdding(true);
+    setError(null);
+
+    try {
+      const selectedTone = tones?.find((tone) => tone.id === selected);
+      if (USE_MOCK) {
+        await new Promise((r) => setTimeout(r, 500));
+      } else {
+        await apiClient.post('/expressions/custom', {
+          text_ko: koreanInput.trim(),
+          context: contextInput.trim() || undefined,
+          text_en: selectedTone?.text,
+          situation_desc_ko: selectedTone?.note,
+          level: 3,
+          category: 'custom',
+        });
+        queryClient.invalidateQueries({ queryKey: learningKeys.expressions({}) });
+        queryClient.invalidateQueries({ queryKey: learningKeys.progress });
+      }
+
+      setAdded(true);
+      setTimeout(() => router.back(), 800);
+    } catch {
+      setError('학습 큐에 추가하지 못했어요. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setIsAdding(false);
+    }
   }
 
   return (
@@ -127,6 +163,7 @@ export default function CustomAddScreen() {
               <Text style={styles.generateBtnText}>AI 변환 →</Text>
             )}
           </Pressable>
+          {error && <Text style={styles.errorText}>{error}</Text>}
         </Card>
 
         {/* Tone options */}
@@ -156,8 +193,11 @@ export default function CustomAddScreen() {
           <Pressable
             style={({ pressed }) => [styles.ctaBtn, added && styles.ctaBtnDone, pressed && { opacity: 0.9 }]}
             onPress={addToQueue}
+            disabled={isAdding || added}
           >
-            {added ? (
+            {isAdding ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : added ? (
               <View style={styles.ctaInner}>
                 <CheckIcon size={18} color="#fff" />
                 <Text style={styles.ctaBtnText}>추가됨</Text>
@@ -199,6 +239,7 @@ const styles = StyleSheet.create({
   },
   generateBtnDisabled: { backgroundColor: C.muted2 },
   generateBtnText: { fontSize: 14, fontWeight: '700', color: '#fff', letterSpacing: 0.2 },
+  errorText: { marginTop: 10, fontSize: 12, color: C.accent, lineHeight: 18 },
 
   ctaWrap: {
     position: 'absolute', bottom: 0, left: 0, right: 0,

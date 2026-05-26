@@ -21,6 +21,9 @@ export interface Session {
   fluencyScore: number;
   prosodyScore: number;
   completenessScore: number;
+  totalScore?: number;
+  recognizedText?: string;
+  wordErrors?: { word: string; accuracyScore: number; errorType: string }[];
   gptFeedback?: GptFeedback;
   createdAt: string;
 }

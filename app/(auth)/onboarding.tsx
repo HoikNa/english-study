@@ -33,6 +33,7 @@ interface AuthResponse {
   user: AuthApiUser;
   user_id: string;
   access_token: string;
+  refresh_token: string;
 }
 
 function normalizeUser(user: AuthApiUser): UserProfile {
@@ -73,7 +74,7 @@ export default function OnboardingScreen() {
         password,
         nickname: mode === 'register' ? nickname.trim() : undefined,
       });
-      setAuth(normalizeUser(res.data.user), res.data.access_token);
+      setAuth(normalizeUser(res.data.user), res.data.access_token, res.data.refresh_token);
       router.replace('/(tabs)');
     } catch {
       setError(mode === 'register' ? '가입에 실패했어요. 이미 등록된 이메일인지 확인해 주세요.' : '로그인 정보를 확인해 주세요.');

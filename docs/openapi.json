@@ -1,0 +1,2293 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "SpeakReadyMY API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Register",
+        "operationId": "register_api_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Me",
+        "operationId": "me_api_v1_auth_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Refresh",
+        "operationId": "refresh_api_v1_auth_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Refresh Api V1 Auth Refresh Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Logout",
+        "operationId": "logout_api_v1_auth_logout_post",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/expressions": {
+      "get": {
+        "tags": [
+          "expressions"
+        ],
+        "summary": "List Expressions",
+        "operationId": "list_expressions_api_v1_expressions_get",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "name": "situation",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Situation"
+            }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Level"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExpressionPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/expressions/{expression_id}": {
+      "get": {
+        "tags": [
+          "expressions"
+        ],
+        "summary": "Get Expression",
+        "operationId": "get_expression_api_v1_expressions__expression_id__get",
+        "parameters": [
+          {
+            "name": "expression_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Expression Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Expression"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/expressions/{expression_id}/tts": {
+      "get": {
+        "tags": [
+          "expressions"
+        ],
+        "summary": "Get Expression Tts",
+        "operationId": "get_expression_tts_api_v1_expressions__expression_id__tts_get",
+        "parameters": [
+          {
+            "name": "expression_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Expression Id"
+            }
+          },
+          {
+            "name": "speed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 1.0,
+              "title": "Speed"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Get Expression Tts Api V1 Expressions  Expression Id  Tts Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/expressions/custom": {
+      "post": {
+        "tags": [
+          "expressions"
+        ],
+        "summary": "Create Custom Expression",
+        "operationId": "create_custom_expression_api_v1_expressions_custom_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomExpressionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Expression"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/expressions/{expression_id}/custom": {
+      "delete": {
+        "tags": [
+          "expressions"
+        ],
+        "summary": "Delete Custom Expression",
+        "operationId": "delete_custom_expression_api_v1_expressions__expression_id__custom_delete",
+        "parameters": [
+          {
+            "name": "expression_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Expression Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/pronunciation": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Pronunciation",
+        "operationId": "pronunciation_api_v1_ai_pronunciation_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_pronunciation_api_v1_ai_pronunciation_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PronunciationResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/feedback": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Feedback",
+        "operationId": "feedback_api_v1_ai_feedback_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/tts/generate": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Generate Tts",
+        "operationId": "generate_tts_api_v1_ai_tts_generate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TtsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Generate Tts Api V1 Ai Tts Generate Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/custom-expression": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Custom Expression",
+        "operationId": "custom_expression_api_v1_ai_custom_expression_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CustomExpressionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomExpressionResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/simulate/start": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Simulate Start",
+        "operationId": "simulate_start_api_v1_ai_simulate_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationStartResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ai/simulate/{simulation_id}/message": {
+      "post": {
+        "tags": [
+          "ai"
+        ],
+        "summary": "Simulate Message",
+        "operationId": "simulate_message_api_v1_ai_simulate__simulation_id__message_post",
+        "parameters": [
+          {
+            "name": "simulation_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Simulation Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulationMessage"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulationReply"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sessions": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Create Session",
+        "operationId": "create_session_api_v1_sessions_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "List Sessions",
+        "operationId": "list_sessions_api_v1_sessions_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "expression_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Expression Id"
+            }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionPage"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/review/today": {
+      "get": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Today",
+        "operationId": "today_api_v1_review_today_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewToday"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/review/{expression_id}/enqueue": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Enqueue",
+        "operationId": "enqueue_api_v1_review__expression_id__enqueue_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "expression_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Expression Id"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueue"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/review/{expression_id}/update": {
+      "patch": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Update Review",
+        "operationId": "update_review_api_v1_review__expression_id__update_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "expression_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Expression Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueue"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/reports/progress": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Progress",
+        "operationId": "progress_api_v1_reports_progress_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressStats"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/reports/weekly": {
+      "get": {
+        "tags": [
+          "reports"
+        ],
+        "summary": "Weekly",
+        "operationId": "weekly_api_v1_reports_weekly_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "week",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Week"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WeeklyReport"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AuthRequest": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 6,
+            "title": "Password"
+          },
+          "nickname": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nickname"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "AuthRequest"
+      },
+      "AuthResponse": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "user_id": {
+            "type": "string",
+            "title": "User Id"
+          },
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          },
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "default": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user",
+          "user_id",
+          "access_token",
+          "refresh_token"
+        ],
+        "title": "AuthResponse"
+      },
+      "Body_pronunciation_api_v1_ai_pronunciation_post": {
+        "properties": {
+          "audio_file": {
+            "type": "string",
+            "format": "binary",
+            "title": "Audio File"
+          },
+          "reference_text": {
+            "type": "string",
+            "title": "Reference Text"
+          },
+          "expression_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expression Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "audio_file",
+          "reference_text"
+        ],
+        "title": "Body_pronunciation_api_v1_ai_pronunciation_post"
+      },
+      "CategoryProgress": {
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": [
+              "life",
+              "business",
+              "it",
+              "custom"
+            ],
+            "title": "Category"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "completed": {
+            "type": "integer",
+            "title": "Completed"
+          },
+          "situations": {
+            "items": {
+              "$ref": "#/components/schemas/SituationItem"
+            },
+            "type": "array",
+            "title": "Situations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "name",
+          "total",
+          "completed",
+          "situations"
+        ],
+        "title": "CategoryProgress"
+      },
+      "CustomExpressionRequest": {
+        "properties": {
+          "text_ko": {
+            "type": "string",
+            "title": "Text Ko"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context"
+          },
+          "text_en": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Text En"
+          },
+          "situation_desc_ko": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Situation Desc Ko"
+          },
+          "level": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 3.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Level"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "life",
+                  "business",
+                  "it",
+                  "custom"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text_ko"
+        ],
+        "title": "CustomExpressionRequest"
+      },
+      "CustomExpressionResult": {
+        "properties": {
+          "text_en": {
+            "type": "string",
+            "title": "Text En"
+          },
+          "situation_desc_ko": {
+            "type": "string",
+            "title": "Situation Desc Ko"
+          },
+          "level": {
+            "type": "integer",
+            "maximum": 3.0,
+            "minimum": 1.0,
+            "title": "Level"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "life",
+              "business",
+              "it",
+              "custom"
+            ],
+            "title": "Category"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text_en",
+          "situation_desc_ko",
+          "level",
+          "category"
+        ],
+        "title": "CustomExpressionResult"
+      },
+      "Expression": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "life",
+              "business",
+              "it",
+              "custom"
+            ],
+            "title": "Category"
+          },
+          "situation": {
+            "type": "string",
+            "title": "Situation"
+          },
+          "situation_ko": {
+            "type": "string",
+            "title": "Situation Ko"
+          },
+          "level": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Level"
+          },
+          "text_en": {
+            "type": "string",
+            "title": "Text En"
+          },
+          "text_ko": {
+            "type": "string",
+            "title": "Text Ko"
+          },
+          "audio_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio Url"
+          },
+          "chunks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Chunks"
+          },
+          "is_custom": {
+            "type": "boolean",
+            "title": "Is Custom",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "category",
+          "situation",
+          "situation_ko",
+          "level",
+          "text_en",
+          "text_ko",
+          "chunks"
+        ],
+        "title": "Expression"
+      },
+      "ExpressionPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Expression"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "ExpressionPage"
+      },
+      "FeedbackAlternative": {
+        "properties": {
+          "en": {
+            "type": "string",
+            "title": "En"
+          },
+          "ko": {
+            "type": "string",
+            "title": "Ko"
+          },
+          "context": {
+            "type": "string",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "en",
+          "ko",
+          "context"
+        ],
+        "title": "FeedbackAlternative"
+      },
+      "FeedbackRequest": {
+        "properties": {
+          "target_sentence": {
+            "type": "string",
+            "title": "Target Sentence"
+          },
+          "recognized_text": {
+            "type": "string",
+            "title": "Recognized Text"
+          },
+          "pron_score": {
+            "type": "number",
+            "title": "Pron Score"
+          },
+          "fluency_score": {
+            "type": "number",
+            "title": "Fluency Score"
+          },
+          "prosody_score": {
+            "type": "number",
+            "title": "Prosody Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_sentence",
+          "recognized_text",
+          "pron_score",
+          "fluency_score",
+          "prosody_score"
+        ],
+        "title": "FeedbackRequest"
+      },
+      "FeedbackResult": {
+        "properties": {
+          "issue": {
+            "type": "string",
+            "title": "Issue"
+          },
+          "alternatives": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackAlternative"
+            },
+            "type": "array",
+            "title": "Alternatives"
+          },
+          "importance": {
+            "type": "string",
+            "title": "Importance"
+          }
+        },
+        "type": "object",
+        "required": [
+          "issue",
+          "alternatives",
+          "importance"
+        ],
+        "title": "FeedbackResult"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ProgressStats": {
+        "properties": {
+          "pronScore": {
+            "type": "number",
+            "title": "Pronscore"
+          },
+          "weeklyChange": {
+            "type": "number",
+            "title": "Weeklychange"
+          },
+          "totalExpressions": {
+            "type": "integer",
+            "title": "Totalexpressions"
+          },
+          "streak": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Streak"
+          },
+          "categories": {
+            "items": {
+              "$ref": "#/components/schemas/CategoryProgress"
+            },
+            "type": "array",
+            "title": "Categories"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pronScore",
+          "weeklyChange",
+          "totalExpressions",
+          "streak",
+          "categories"
+        ],
+        "title": "ProgressStats"
+      },
+      "PronunciationResult": {
+        "properties": {
+          "pron_score": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Pron Score"
+          },
+          "fluency_score": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Fluency Score"
+          },
+          "prosody_score": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Prosody Score"
+          },
+          "completeness_score": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Completeness Score"
+          },
+          "total_score": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Total Score"
+          },
+          "word_errors": {
+            "items": {
+              "$ref": "#/components/schemas/WordError"
+            },
+            "type": "array",
+            "title": "Word Errors"
+          },
+          "recognized_text": {
+            "type": "string",
+            "title": "Recognized Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "pron_score",
+          "fluency_score",
+          "prosody_score",
+          "completeness_score",
+          "total_score",
+          "word_errors",
+          "recognized_text"
+        ],
+        "title": "PronunciationResult"
+      },
+      "RefreshRequest": {
+        "properties": {
+          "refresh_token": {
+            "type": "string",
+            "title": "Refresh Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "title": "RefreshRequest"
+      },
+      "ReviewQueue": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "expression_id": {
+            "type": "string",
+            "title": "Expression Id"
+          },
+          "expression": {
+            "$ref": "#/components/schemas/Expression"
+          },
+          "interval": {
+            "type": "integer",
+            "title": "Interval",
+            "default": 1
+          },
+          "repetition": {
+            "type": "integer",
+            "title": "Repetition",
+            "default": 0
+          },
+          "ef": {
+            "type": "number",
+            "title": "Ef",
+            "default": 2.5
+          },
+          "next_review_at": {
+            "type": "string",
+            "title": "Next Review At"
+          },
+          "last_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Score"
+          },
+          "total_attempts": {
+            "type": "integer",
+            "title": "Total Attempts",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "expression_id",
+          "expression",
+          "next_review_at"
+        ],
+        "title": "ReviewQueue"
+      },
+      "ReviewToday": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewQueue"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "count"
+        ],
+        "title": "ReviewToday"
+      },
+      "ReviewUpdateRequest": {
+        "properties": {
+          "grade": {
+            "type": "integer",
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Grade"
+          },
+          "score": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score"
+          },
+          "repetition": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Repetition"
+          },
+          "interval_days": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Interval Days"
+          },
+          "ease_factor": {
+            "type": "number",
+            "minimum": 1.3,
+            "title": "Ease Factor"
+          },
+          "next_review_at": {
+            "type": "string",
+            "title": "Next Review At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "grade",
+          "score",
+          "repetition",
+          "interval_days",
+          "ease_factor",
+          "next_review_at"
+        ],
+        "title": "ReviewUpdateRequest"
+      },
+      "Session": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "expression_id": {
+            "type": "string",
+            "title": "Expression Id"
+          },
+          "attempt_number": {
+            "type": "integer",
+            "title": "Attempt Number",
+            "default": 1
+          },
+          "pron_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pron Score"
+          },
+          "fluency_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fluency Score"
+          },
+          "prosody_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prosody Score"
+          },
+          "completeness_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completeness Score"
+          },
+          "total_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Score"
+          },
+          "recognized_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recognized Text"
+          },
+          "word_errors_json": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Word Errors Json"
+          },
+          "gpt_feedback_json": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpt Feedback Json"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expression_id"
+        ],
+        "title": "Session"
+      },
+      "SessionCreate": {
+        "properties": {
+          "expression_id": {
+            "type": "string",
+            "title": "Expression Id"
+          },
+          "pron_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pron Score"
+          },
+          "fluency_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fluency Score"
+          },
+          "prosody_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prosody Score"
+          },
+          "completeness_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completeness Score"
+          },
+          "total_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Score"
+          },
+          "recognized_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recognized Text"
+          },
+          "word_errors_json": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Word Errors Json"
+          },
+          "gpt_feedback_json": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gpt Feedback Json"
+          }
+        },
+        "type": "object",
+        "required": [
+          "expression_id"
+        ],
+        "title": "SessionCreate"
+      },
+      "SessionPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/Session"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "title": "SessionPage"
+      },
+      "SimulationMessage": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "history": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "History"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "SimulationMessage"
+      },
+      "SimulationReply": {
+        "properties": {
+          "reply": {
+            "type": "string",
+            "title": "Reply"
+          },
+          "coach_comment_ko": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coach Comment Ko"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reply"
+        ],
+        "title": "SimulationReply"
+      },
+      "SimulationStart": {
+        "properties": {
+          "scenario_code": {
+            "type": "string",
+            "title": "Scenario Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenario_code"
+        ],
+        "title": "SimulationStart"
+      },
+      "SimulationStartResult": {
+        "properties": {
+          "simulation_id": {
+            "type": "string",
+            "title": "Simulation Id"
+          },
+          "first_message": {
+            "type": "string",
+            "title": "First Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "simulation_id",
+          "first_message"
+        ],
+        "title": "SimulationStartResult"
+      },
+      "SituationItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "idx": {
+            "type": "string",
+            "title": "Idx"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "name_en": {
+            "type": "string",
+            "title": "Name En"
+          },
+          "total_expressions": {
+            "type": "integer",
+            "title": "Total Expressions"
+          },
+          "completed_expressions": {
+            "type": "integer",
+            "title": "Completed Expressions"
+          },
+          "best_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Score"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "idx",
+          "name",
+          "name_en",
+          "total_expressions",
+          "completed_expressions"
+        ],
+        "title": "SituationItem"
+      },
+      "TtsRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "voice": {
+            "type": "string",
+            "title": "Voice",
+            "default": "nova"
+          },
+          "speed": {
+            "type": "number",
+            "title": "Speed",
+            "default": 1.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "title": "TtsRequest"
+      },
+      "User": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email"
+          },
+          "nickname": {
+            "type": "string",
+            "title": "Nickname"
+          },
+          "level": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Level",
+            "default": 3
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "nickname"
+        ],
+        "title": "User"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "WeeklyReport": {
+        "properties": {
+          "week_range": {
+            "type": "string",
+            "title": "Week Range"
+          },
+          "total_sessions": {
+            "type": "integer",
+            "title": "Total Sessions"
+          },
+          "expressions_practiced": {
+            "type": "integer",
+            "title": "Expressions Practiced"
+          },
+          "avg_score": {
+            "type": "number",
+            "title": "Avg Score"
+          },
+          "score_change": {
+            "type": "number",
+            "title": "Score Change"
+          },
+          "top_category": {
+            "type": "string",
+            "title": "Top Category"
+          },
+          "patterns": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Patterns"
+          },
+          "goals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Goals"
+          }
+        },
+        "type": "object",
+        "required": [
+          "week_range",
+          "total_sessions",
+          "expressions_practiced",
+          "avg_score",
+          "score_change",
+          "top_category",
+          "patterns",
+          "goals"
+        ],
+        "title": "WeeklyReport"
+      },
+      "WordError": {
+        "properties": {
+          "word": {
+            "type": "string",
+            "title": "Word"
+          },
+          "accuracy_score": {
+            "type": "number",
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Accuracy Score"
+          },
+          "error_type": {
+            "type": "string",
+            "enum": [
+              "None",
+              "Omission",
+              "Insertion",
+              "Mispronunciation"
+            ],
+            "title": "Error Type",
+            "default": "None"
+          }
+        },
+        "type": "object",
+        "required": [
+          "word",
+          "accuracy_score"
+        ],
+        "title": "WordError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

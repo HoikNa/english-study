@@ -16,7 +16,10 @@ interface FeedbackCardProps {
 }
 
 export function FeedbackCard({ issue, alternatives, focusWord = 'clarify' }: FeedbackCardProps) {
-  const normalizedIssue = issue.replace(`'${focusWord}'의`, '의');
+  const quotedFocus = `'${focusWord}'`;
+  const normalizedIssue = issue.startsWith(quotedFocus)
+    ? issue.slice(quotedFocus.length).trimStart()
+    : issue.replace(`${quotedFocus}의`, '의');
 
   return (
     <Card padding={16}>

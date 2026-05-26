@@ -9,6 +9,7 @@ import {
   mockStats,
   mockStreak,
 } from '@/lib/mocks/expressions.mock';
+import { mockWeeklyReport } from '@/lib/mocks/reports.mock';
 import type { Category, CategoryProgress, Expression, ExpressionLevel, GptFeedback, ReviewGrade, ReviewItem, Session, SituationItem } from '@/types';
 import type { PronunciationResult } from './useAzurePronunciation';
 import { calculateSm2 } from './useSmScheduler';
@@ -85,6 +86,25 @@ export interface ProgressStats {
   categories: CategoryProgress[];
 }
 
+export interface WeeklyReportPattern {
+  rank: string;
+  bad: string;
+  good: string;
+  why: string;
+  category: string;
+}
+
+export interface WeeklyReportData {
+  weekRange: string;
+  totalSessions: number;
+  expressionsPracticed: number;
+  avgScore: number;
+  scoreChange: number;
+  topCategory: string;
+  patterns: WeeklyReportPattern[];
+  goals: { mark: string; text: string }[];
+}
+
 interface ApiProgressStats {
   pronScore?: number;
   pron_score?: number;
@@ -96,10 +116,23 @@ interface ApiProgressStats {
   categories: ApiCategoryProgress[];
 }
 
+interface ApiWeeklyReport {
+  week_range?: string;
+  total_sessions?: number;
+  expressions_practiced?: number;
+  avg_score?: number;
+  score_change?: number;
+  top_category?: string;
+  patterns?: WeeklyReportPattern[];
+  goals?: string[];
+}
+
 interface ExpressionFilters {
   category?: Category;
   situation?: string;
   level?: ExpressionLevel;
+  skip?: number;
+  limit?: number;
 }
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -107,10 +140,13 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export const learningKeys = {
   expressions: (filters: ExpressionFilters = {}) => ['expressions', filters] as const,
   expression: (id?: string) => ['expression', id] as const,
+  todayExpression: ['expression', 'today'] as const,
   situations: (category?: Category) => ['situations', category] as const,
   reviewToday: ['review', 'today'] as const,
   sessions: (expressionId?: string) => ['sessions', expressionId] as const,
+  recentSessions: (limit: number) => ['sessions', 'recent', limit] as const,
   progress: ['progress'] as const,
+  weeklyReport: (week?: string) => ['weekly-report', week] as const,
 };
 
 interface ApiSession {
@@ -125,6 +161,12 @@ interface ApiSession {
   prosodyScore?: number;
   completeness_score?: number;
   completenessScore?: number;
+  total_score?: number;
+  totalScore?: number;
+  recognized_text?: string;
+  recognizedText?: string;
+  word_errors_json?: { word: string; accuracy_score?: number; error_type?: string }[];
+  wordErrors?: Session['wordErrors'];
   gpt_feedback_json?: GptFeedback;
   gptFeedback?: GptFeedback;
   created_at?: string;
@@ -220,8 +262,57 @@ function normalizeSession(session: Session | ApiSession): Session {
     fluencyScore: session.fluency_score ?? 0,
     prosodyScore: session.prosody_score ?? 0,
     completenessScore: session.completeness_score ?? 0,
+    totalScore: session.total_score ?? session.totalScore,
+    recognizedText: session.recognized_text ?? session.recognizedText,
+    wordErrors: (session.word_errors_json ?? session.wordErrors ?? []).map((word) => ({
+      word: word.word,
+      accuracyScore: 'accuracyScore' in word ? word.accuracyScore : word.accuracy_score ?? 0,
+      errorType: 'errorType' in word ? word.errorType : word.error_type ?? 'None',
+    })),
     gptFeedback: session.gpt_feedback_json,
     createdAt: session.created_at ?? new Date().toISOString(),
+  };
+}
+
+function normalizeWeeklyReport(report: WeeklyReportData | ApiWeeklyReport): WeeklyReportData {
+  if ('weekRange' in report) return report;
+
+  const goals = (report.goals ?? []).map((text, index) => ({
+    mark: `${String(index + 1).padStart(2, '0')}`,
+    text,
+  }));
+
+  return {
+    weekRange: report.week_range ?? '',
+    totalSessions: report.total_sessions ?? 0,
+    expressionsPracticed: report.expressions_practiced ?? 0,
+    avgScore: report.avg_score ?? 0,
+    scoreChange: report.score_change ?? 0,
+    topCategory: report.top_category ?? '',
+    patterns: report.patterns ?? [],
+    goals,
+  };
+}
+
+function mockWeeklyReportData(): WeeklyReportData {
+  return {
+    weekRange: '5월 16일 - 22일',
+    totalSessions: 12,
+    expressionsPracticed: mockWeeklyReport.completedExpressions,
+    avgScore: mockWeeklyReport.averageScore,
+    scoreChange: 8,
+    topCategory: 'IT 미팅',
+    patterns: mockWeeklyReport.topWeakPatterns.map((why: string, index: number) => ({
+      rank: String(index + 1).padStart(2, '0'),
+      bad: mockWeeklyReport.recommendedExpressions[index] ?? 'I think it is maybe possible',
+      good: mockWeeklyReport.recommendedExpressions[index] ?? 'I think it is maybe possible',
+      why,
+      category: index === 0 ? 'Leadership tone' : index === 1 ? 'Technical precision' : 'Confidence register',
+    })),
+    goals: mockWeeklyReport.recommendedExpressions.slice(0, 3).map((text: string, index: number) => ({
+      mark: String(index + 1).padStart(2, '0'),
+      text,
+    })),
   };
 }
 
@@ -252,6 +343,21 @@ export function useExpression(id?: string) {
       }
 
       const res = await apiClient.get<Expression | ApiExpression>(`/expressions/${id}`);
+      return normalizeExpression(res.data);
+    },
+  });
+}
+
+export function useTodayExpression() {
+  return useQuery({
+    queryKey: learningKeys.todayExpression,
+    queryFn: async () => {
+      if (USE_MOCK) {
+        await wait(120);
+        return mockExpressions.find((expression) => expression.id === 'exp-011') ?? mockExpressions[0];
+      }
+
+      const res = await apiClient.get<Expression | ApiExpression>('/expressions/today');
       return normalizeExpression(res.data);
     },
   });
@@ -311,6 +417,56 @@ export function useProgressStats() {
   });
 }
 
+export function useWeeklyReport(week?: string) {
+  return useQuery({
+    queryKey: learningKeys.weeklyReport(week),
+    queryFn: async (): Promise<WeeklyReportData> => {
+      if (USE_MOCK) {
+        await wait(160);
+        return mockWeeklyReportData();
+      }
+
+      const res = await apiClient.get<ApiWeeklyReport>('/reports/weekly', { params: { week } });
+      return normalizeWeeklyReport(res.data);
+    },
+  });
+}
+
+export function useSessions(expressionId?: string) {
+  return useQuery({
+    queryKey: learningKeys.sessions(expressionId),
+    enabled: Boolean(expressionId),
+    queryFn: async () => {
+      if (USE_MOCK) {
+        await wait(120);
+        return { items: [] as Session[], total: 0 };
+      }
+
+      const res = await apiClient.get<PaginatedResponse<Session | ApiSession>>('/sessions', {
+        params: { expression_id: expressionId },
+      });
+      return { items: res.data.items.map(normalizeSession), total: res.data.total };
+    },
+  });
+}
+
+export function useRecentSessions(limit = 5) {
+  return useQuery({
+    queryKey: learningKeys.recentSessions(limit),
+    queryFn: async () => {
+      if (USE_MOCK) {
+        await wait(120);
+        return { items: [] as Session[], total: 0 };
+      }
+
+      const res = await apiClient.get<PaginatedResponse<Session | ApiSession>>('/sessions', {
+        params: { limit },
+      });
+      return { items: res.data.items.map(normalizeSession), total: res.data.total };
+    },
+  });
+}
+
 export function useUpdateReview() {
   const queryClient = useQueryClient();
 
@@ -331,6 +487,7 @@ export function useUpdateReview() {
 
       const res = await apiClient.patch<ReviewItem | ApiReviewItem>(`/review/${item.expressionId}/update`, {
         grade: next.grade,
+        score: scoreByGrade[grade],
         repetition: next.repetition,
         interval_days: next.interval,
         ease_factor: next.ef,
@@ -383,9 +540,11 @@ export function useCreateSession() {
         gpt_feedback_json: feedback,
       });
 
-      if (pronResult.totalScore < 70) {
+      if (pronResult.totalScore < 85) {
         try {
-          await apiClient.post(`/review/${expressionId}/enqueue`);
+          await apiClient.post(`/review/${expressionId}/enqueue`, {
+            score: pronResult.totalScore,
+          });
         } catch (err) {
           if (!axios.isAxiosError(err) || err.response?.status !== 409) {
             throw err;

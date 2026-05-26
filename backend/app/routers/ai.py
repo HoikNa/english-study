@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from pydantic import BaseModel
 
 from app.schemas import (
@@ -15,8 +15,9 @@ from app.schemas import (
 )
 from app.services import azure_speech, gpt_coach
 from app.services.openai_tts import get_tts_url
+from app.services.rate_limit import ai_rate_limit
 
-router = APIRouter(prefix="/ai", tags=["ai"])
+router = APIRouter(prefix="/ai", tags=["ai"], dependencies=[Depends(ai_rate_limit)])
 
 
 class FeedbackRequest(BaseModel):
@@ -75,4 +76,3 @@ def simulate_start(payload: SimulationStart) -> SimulationStartResult:
 @router.post("/simulate/{simulation_id}/message", response_model=SimulationReply)
 def simulate_message(simulation_id: str, payload: SimulationMessage) -> SimulationReply:
     return gpt_coach.create_simulation_reply(payload.message, payload.history)
-

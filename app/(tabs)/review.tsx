@@ -2,49 +2,184 @@ import React, { useState } from 'react';
 import {
   View, Text, ScrollView, Pressable, StyleSheet, SafeAreaView,
 } from 'react-native';
+import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, spacing } from '@/lib/theme';
 import { Card } from '@/components/common/Card';
 import { SectionLabel } from '@/components/common/SectionLabel';
+import { ScreenState } from '@/components/common/ScreenState';
 import { Chip } from '@/components/common/Chip';
 import { MicIcon, PlayIcon } from '@/components/common/Icons';
 import { MiniWaveform } from '@/components/common/MiniWaveform';
 import { mockReviewQueue } from '@/lib/mocks/expressions.mock';
-import { ReviewGrade } from '@/types';
-import { useReviewToday, useUpdateReview } from '@/hooks/useLearningData';
+import { USE_MOCK } from '@/lib/api';
+import { ReviewGrade, Session } from '@/types';
+import { useRecentSessions, useReviewToday, useSessions, useUpdateReview } from '@/hooks/useLearningData';
+import { calculateSm2 } from '@/hooks/useSmScheduler';
+import { useTts } from '@/hooks/useTts';
+
+const SCORE_BY_GRADE: Record<ReviewGrade, number> = { hard: 55, ok: 76, easy: 92 };
+
+function intervalLabel(days: number) {
+  if (days <= 1) return '내일 다시';
+  return `${days}일 뒤`;
+}
+
+function relativeDateLabel(value?: string) {
+  if (!value) return '최근 학습 기록 없음';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '최근 학습 기록 없음';
+
+  const diffMs = Date.now() - date.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays <= 0) return '오늘 학습';
+  if (diffDays === 1) return '어제 학습';
+  if (diffDays < 7) return `${diffDays}일 전 학습`;
+  return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+}
+
+function scoreTone(score?: number) {
+  if (score === undefined || score === null) return { color: C.muted, bg: C.paper2 };
+  if (score >= 85) return { color: C.sage, bg: C.sageSoft };
+  if (score >= 70) return { color: C.gold, bg: C.goldSoft };
+  return { color: C.rose, bg: C.accentSoft };
+}
+
+function reviewFocus(session?: Session) {
+  const word = session?.wordErrors?.find((item) => item.errorType !== 'None' || item.accuracyScore < 75);
+  if (word) return `${word.word}: 정확도 ${Math.round(word.accuracyScore)}점`;
+  if (session?.gptFeedback?.issue) return session.gptFeedback.issue;
+  if (session?.recognizedText) return `최근 인식: ${session.recognizedText}`;
+  return '최근 점수를 기준으로 한 번 더 말해 보세요.';
+}
 
 export default function ReviewScreen() {
+  const insets = useSafeAreaInsets();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { data: reviewToday } = useReviewToday();
+  const [gradeError, setGradeError] = useState<string | null>(null);
+  const reviewQuery = useReviewToday();
+  const { data: reviewToday } = reviewQuery;
   const updateReview = useUpdateReview();
-  const reviewQueue = reviewToday?.items ?? mockReviewQueue;
+  const reviewQueue = reviewToday?.items ?? (USE_MOCK ? mockReviewQueue : []);
   const current = reviewQueue[currentIndex];
+  const recentSessionsQuery = useRecentSessions(5);
+  const sessionsQuery = useSessions(current?.expressionId);
+  const latestSession = sessionsQuery.data?.items[0];
+  const tts = useTts();
+  const bottomContentPadding = 168 + Math.max(insets.bottom, 48);
 
-  function handleGrade(grade: ReviewGrade) {
+  async function handleGrade(grade: ReviewGrade) {
     if (!current || updateReview.isPending) return;
-    updateReview.mutate({ item: current, grade });
 
-    setCurrentIndex(currentIndex + 1);
+    setGradeError(null);
+    try {
+      await updateReview.mutateAsync({ item: current, grade });
+      setCurrentIndex((index) => index + 1);
+    } catch {
+      setGradeError('복습 결과를 저장하지 못했어요. 다시 시도해 주세요.');
+    }
   }
 
-  if (!current) {
+  if (!reviewToday && reviewQuery.isLoading) {
     return (
       <SafeAreaView style={styles.safe}>
-        <View style={styles.empty}>
-          <Text style={styles.emptyEmoji}>🎉</Text>
-          <Text style={styles.emptyTitle}>오늘 복습 완료!</Text>
-          <Text style={styles.emptySub}>모든 복습 표현을 완료했어요.</Text>
-        </View>
+        <ScreenState loading title="복습 큐를 불러오는 중" message="오늘 복습할 표현을 확인하고 있어요." />
       </SafeAreaView>
     );
   }
 
+  if (reviewQuery.isError) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenState
+          title="복습 큐를 불러오지 못했어요"
+          message="백엔드 연결을 확인한 뒤 다시 시도해 주세요."
+          actionLabel="다시 시도"
+          onAction={() => reviewQuery.refetch()}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  if (!current) {
+    const recentSession = recentSessionsQuery.data?.items[0];
+    if (recentSession) {
+      const tone = scoreTone(recentSession.totalScore ?? recentSession.pronScore);
+      return (
+        <SafeAreaView style={styles.safe}>
+          <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: bottomContentPadding }]} showsVerticalScrollIndicator={false}>
+            <View style={styles.header}>
+              <SectionLabel>복습 세션</SectionLabel>
+              <Text style={styles.mono}>최근 학습</Text>
+            </View>
+            <View style={styles.section}>
+              <Card style={styles.flashCard} padding={18}>
+                <View style={styles.cardMeta}>
+                  <Chip color={tone.color} bg={tone.bg} style={styles.scoreChip}>
+                    최근 {Math.round(recentSession.totalScore ?? recentSession.pronScore)}점
+                  </Chip>
+                  <Text style={styles.lastStudied}>{relativeDateLabel(recentSession.createdAt)}</Text>
+                </View>
+                <Text style={styles.situationKo}>오늘 복습 없음</Text>
+                <Text style={styles.textEn}>{recentSession.expressionId}</Text>
+                <Text style={styles.textKo}>새 학습을 마치면 낮은 점수 표현이 복습 큐에 자동으로 들어와요.</Text>
+                <View style={styles.mistakeBox}>
+                  <Text style={styles.mistakeLabel}>최근 학습 데이터</Text>
+                  <Text style={styles.mistakeText}>{reviewFocus(recentSession)}</Text>
+                </View>
+              </Card>
+            </View>
+            <View style={styles.section}>
+              <Pressable
+                style={({ pressed }) => [styles.recordCta, pressed && { opacity: 0.82 }]}
+                onPress={() => router.push(`/shadowing/${recentSession.expressionId}`)}
+              >
+                <MicIcon color={C.paper} size={20} />
+                <Text style={styles.recordCtaText}>최근 표현 다시 녹음</Text>
+              </Pressable>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      );
+    }
+
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenState
+          loading={recentSessionsQuery.isLoading}
+          title="오늘 복습 완료!"
+          message={recentSessionsQuery.isLoading ? '최근 학습 기록을 확인하고 있어요.' : '모든 복습 표현을 완료했어요.'}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  const gradeOptions: Array<{ grade: ReviewGrade; label: string; style: object }> = [
+    { grade: 'hard', label: '어려워', style: styles.gradeBtnHard },
+    { grade: 'ok', label: '괜찮아', style: styles.gradeBtnOk },
+    { grade: 'easy', label: '쉬워', style: styles.gradeBtnEasy },
+  ];
+
+  const gradeIntervals = gradeOptions.reduce<Record<ReviewGrade, number>>((acc, option) => {
+    acc[option.grade] = calculateSm2({
+      score: SCORE_BY_GRADE[option.grade],
+      repetition: current.repetition,
+      interval: current.interval,
+      ef: current.ef,
+    }).interval;
+    return acc;
+  }, {} as Record<ReviewGrade, number>);
+  const lastScore = latestSession?.totalScore ?? current.lastScore;
+  const tone = scoreTone(lastScore);
+  const lastStudied = relativeDateLabel(latestSession?.createdAt);
+
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: bottomContentPadding }]} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <SectionLabel>복습 세션</SectionLabel>
-          <Text style={styles.mono}>SM-2</Text>
+          <Text style={styles.mono}>{currentIndex + 1}/{reviewQueue.length} · SM-2</Text>
         </View>
 
         {/* Progress bar */}
@@ -66,10 +201,10 @@ export default function ReviewScreen() {
         <View style={styles.section}>
           <Card style={styles.flashCard} padding={18}>
             <View style={styles.cardMeta}>
-              <Chip color={C.rose} bg={C.accentSoft} style={styles.scoreChip}>
-                전 회차 {current.lastScore}점
+              <Chip color={tone.color} bg={tone.bg} style={styles.scoreChip}>
+                최근 {Math.round(lastScore ?? 0)}점
               </Chip>
-            <Text style={styles.lastStudied}>5일 전 학습</Text>
+              <Text style={styles.lastStudied}>{sessionsQuery.isLoading ? '최근 학습 확인 중' : lastStudied}</Text>
             </View>
 
             <Text style={styles.situationKo}>{current.expression.situationKo}</Text>
@@ -78,54 +213,60 @@ export default function ReviewScreen() {
 
             {/* Mini player */}
             <View style={styles.miniPlayer}>
-              <Pressable style={styles.playBtn}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="복습 문장 듣기"
+                style={({ pressed }) => [styles.playBtn, tts.isPlaying && styles.playBtnActive, pressed && { opacity: 0.75 }]}
+                onPress={() => tts.playText(current.expression.textEn)}
+                disabled={tts.loading}
+              >
                 <PlayIcon color={C.ink} size={16} />
               </Pressable>
-              <MiniWaveform compact />
-              <Text style={styles.playerTime}>0:03</Text>
+              <MiniWaveform compact activeBars={tts.isPlaying ? 20 : 6} />
+              <Text style={styles.playerTime}>{tts.loading ? '준비 중' : tts.isPlaying ? '재생 중' : '듣기'}</Text>
             </View>
 
             {/* Last mistake */}
             <View style={styles.mistakeBox}>
-            <Text style={styles.mistakeLabel}>💡 지난 실수</Text>
-              <Text style={styles.mistakeText}>
-                강세: <Text style={styles.monoEmphasis}>e-LAB-or-ate</Text> — 두 번째 음절을 강하게
-              </Text>
+              <Text style={styles.mistakeLabel}>복습 포인트</Text>
+              <Text style={styles.mistakeText}>{reviewFocus(latestSession)}</Text>
             </View>
           </Card>
         </View>
 
         {/* Grade buttons */}
         <View style={styles.gradeRow}>
-          <Pressable
-            style={({ pressed }) => [styles.gradeBtn, styles.gradeBtnHard, pressed && { opacity: 0.8 }]}
-            onPress={() => handleGrade('hard')}
-            disabled={updateReview.isPending}
-          >
-            <Text style={styles.gradeLabel}>어려워</Text>
-            <Text style={styles.gradeSub}>내일 다시</Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.gradeBtn, styles.gradeBtnOk, pressed && { opacity: 0.8 }]}
-            onPress={() => handleGrade('ok')}
-            disabled={updateReview.isPending}
-          >
-            <Text style={styles.gradeLabel}>괜찮아</Text>
-            <Text style={styles.gradeSub}>3일 뒤</Text>
-          </Pressable>
-          <Pressable
-            style={({ pressed }) => [styles.gradeBtn, styles.gradeBtnEasy, pressed && { opacity: 0.8 }]}
-            onPress={() => handleGrade('easy')}
-            disabled={updateReview.isPending}
-          >
-            <Text style={styles.gradeLabel}>쉬워</Text>
-            <Text style={styles.gradeSub}>7일 뒤</Text>
-          </Pressable>
+          {gradeOptions.map((option) => (
+            <Pressable
+              key={option.grade}
+              style={({ pressed }) => [
+                styles.gradeBtn,
+                option.style,
+                (pressed || updateReview.isPending) && { opacity: 0.8 },
+              ]}
+              onPress={() => handleGrade(option.grade)}
+              disabled={updateReview.isPending}
+            >
+              <Text style={styles.gradeLabel}>{option.label}</Text>
+              <Text style={styles.gradeSub}>
+                {updateReview.isPending ? '저장 중' : intervalLabel(gradeIntervals[option.grade])}
+              </Text>
+            </Pressable>
+          ))}
         </View>
+
+        {gradeError && (
+          <View style={styles.section}>
+            <Text style={styles.gradeError}>{gradeError}</Text>
+          </View>
+        )}
 
         {/* Re-record CTA */}
         <View style={styles.section}>
-          <Pressable style={styles.recordCta}>
+          <Pressable
+            style={({ pressed }) => [styles.recordCta, pressed && { opacity: 0.82 }]}
+            onPress={() => router.push(`/shadowing/${current.expressionId}`)}
+          >
             <MicIcon color={C.paper} size={20} />
             <Text style={styles.recordCtaText}>다시 녹음해서 점수 갱신</Text>
           </Pressable>
@@ -137,7 +278,7 @@ export default function ReviewScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.paper },
-  scroll: { paddingBottom: 100 },
+  scroll: {},
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: spacing.screenH, paddingTop: 8, paddingBottom: 12,
@@ -172,6 +313,7 @@ const styles = StyleSheet.create({
     backgroundColor: C.card, alignItems: 'center', justifyContent: 'center',
     borderWidth: 0.5, borderColor: C.line,
   },
+  playBtnActive: { backgroundColor: C.sageSoft, borderColor: C.sage },
   playerTime: { fontSize: 10, color: C.muted, fontFamily: 'IBMPlexMono' },
 
   mistakeBox: {
@@ -180,7 +322,6 @@ const styles = StyleSheet.create({
   },
   mistakeLabel: { fontSize: 11, fontWeight: '600', color: C.gold, marginBottom: 4 },
   mistakeText: { fontSize: 13, color: C.ink2, lineHeight: 18 },
-  monoEmphasis: { fontFamily: 'IBMPlexMonoSemiBold', color: C.gold },
 
   gradeRow: {
     flexDirection: 'row', gap: 8, paddingHorizontal: spacing.screenH, marginBottom: 12,
@@ -193,6 +334,12 @@ const styles = StyleSheet.create({
   gradeBtnEasy: { backgroundColor: C.sageSoft },
   gradeLabel: { fontSize: 14, fontWeight: '700', color: C.ink },
   gradeSub: { fontSize: 10, color: C.muted, fontFamily: 'IBMPlexMono' },
+  gradeError: {
+    color: C.rose,
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
 
   recordCta: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10,
