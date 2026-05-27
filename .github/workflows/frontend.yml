@@ -25,7 +25,7 @@ jobs:
         run: npm ci
 
       - name: Typecheck
-        run: npm run typecheck
+        run: npx tsc --noEmit
 
       - name: Export web bundle
-        run: npm run export:web
+        run: npx expo export --platform web --output-dir /tmp/english-study-web-export
