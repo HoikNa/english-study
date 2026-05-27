@@ -24,7 +24,10 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS"
       ],
-      "package": "com.hoik.speakreadymy"
+      "package": "com.hoik.speakreadymy",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "web": {
       "bundler": "metro",
@@ -58,6 +61,9 @@
       "eas": {
         "projectId": "57cccf56-7494-4844-a508-89b6cb754c3a"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/57cccf56-7494-4844-a508-89b6cb754c3a"
     }
   }
 }

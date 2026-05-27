@@ -135,3 +135,23 @@ CloudWatch alarms: Lambda Errors, Lambda Duration
 - The 2026-05-26 operations deploy created/updated the CloudWatch alarms and API Gateway stage throttle. A later redeploy set `AlarmEmail=bizhoik@gmail.com`; the SNS email subscription is confirmed.
 - The 2026-05-26 Secrets Manager deploy created secret `speakready-my-backend/app`, removed raw DB/JWT/Azure/OpenAI/Supabase secrets from Lambda environment variables, and verified runtime auth through `/auth/register` plus `/auth/me`.
 - The 2026-05-26 backend Sentry deploy added `SENTRY_DSN` to the secret JSON and `SENTRY_TRACES_SAMPLE_RATE` to Lambda env. A follow-up deploy set `SENTRY_DSN` in Secrets Manager, so backend Sentry is active.
+- The 2026-05-27 cleanup deploy removes the orphan `GEMINI_FALLBACK_ENABLED` env var; the runtime config field was also dropped because no Gemini fallback path was ever implemented.
+
+## Frontend OTA (EAS Update)
+
+EAS Update is configured for JS-only OTA delivery so non-native changes can ship without a new EAS build.
+
+- Update URL: `https://u.expo.dev/57cccf56-7494-4844-a508-89b6cb754c3a`
+- Runtime version policy: `appVersion`. The runtime version equals `expo.version` in `app.json` (currently `1.0.0`). Bumping `expo.version` forces a new native build before OTA updates can resume on that version.
+- Channels: `eas.json` maps `development` / `preview` / `production` profiles to channels with the same names.
+- First OTA was published on 2026-05-27: update group `22c8b604-d0eb-4a87-9c11-fea4d44526d1`, message `OTA setup initial publish (2026-05-27)`.
+
+To publish a JS-only update:
+
+```bash
+npx eas-cli update --channel development --environment development --message "<short summary>"
+```
+
+Use `--platform android` if iOS is not yet wired. Apply the same form for `preview` / `production` once those channels are needed. The device fetches the latest update on app cold start and applies it on the next launch (default `expo-updates` behavior).
+
+To force an immediate fetch in code, call `Updates.fetchUpdateAsync()` or wire `useUpdates` — currently not used so updates pick up silently on relaunch.
