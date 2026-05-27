@@ -21,8 +21,8 @@ Date: 2026-05-26
 | ✅ | Configure CloudWatch alarms for Lambda errors and latency | Deployed Lambda `Errors` and high `Duration` alarms. Both are `OK`; SNS email subscription for `bizhoik@gmail.com` is confirmed. |
 | ☐ | Reconcile OpenAI/Azure/Supabase/AWS dashboard usage | Update `docs/cost-actual-log.md` with provider dashboard numbers. |
 | ✅ | Move API keys and JWT secret to AWS Secrets Manager | Lambda env now stores only `APP_SECRET_ID`; raw DB/JWT/Azure/OpenAI/Supabase secrets were removed from Lambda env and auth smoke test passed. |
-| ◐ | Add CI checks for frontend and backend | `.github/workflows/frontend.yml` and `.github/workflows/backend.yml` added. First GitHub run still needs confirmation. |
-| ◐ | Add backend coverage threshold | `pytest.ini` enforces `--cov=backend/app --cov-fail-under=50`; local run passed at 73.02%, first GitHub run still needs confirmation. |
+| ✅ | Add CI checks for frontend and backend | `.github/workflows/frontend.yml` and `.github/workflows/backend.yml` confirmed green on PR #3 (2026-05-27). |
+| ✅ | Add backend coverage threshold | `pytest.ini` enforces `--cov=backend/app --cov-fail-under=50`; GitHub `Pytest with coverage` job confirmed green on PR #3 (2026-05-27). |
 | ◐ | Decide production build profile and app identifiers | Android package and iOS bundle ID are `com.hoik.speakreadymy`; production Android profile now emits an AAB and auto-increments `versionCode`. Final store metadata/assets still need review. |
 | ✅ | Run EAS production build dry run | Android production AAB build `267f9b38-fb05-4c6b-8a29-8ebf5e7975b2` finished with app build version `4`. |
 | ◐ | Prepare store privacy disclosures | Draft privacy policy and app-store metadata are prepared; hosted public privacy URL and final review remain. |
