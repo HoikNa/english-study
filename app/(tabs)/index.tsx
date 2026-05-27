@@ -11,6 +11,7 @@ import { ScreenState } from '@/components/common/ScreenState';
 import { PlayIcon, ChevronIcon } from '@/components/common/Icons';
 import { StreakBadge } from '@/components/home/StreakBadge';
 import { mockExpressions, mockReviewQueue, mockStats, mockStreak } from '@/lib/mocks/expressions.mock';
+import { mockTodayDialogue } from '@/lib/mocks/dialogues.mock';
 import { useProgressStats, useReviewToday, useTodayExpression } from '@/hooks/useLearningData';
 import { getApiErrorMessage, USE_MOCK } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
@@ -46,7 +47,7 @@ export default function HomeScreen() {
   const reviewQueue = reviewToday?.items ?? (USE_MOCK ? mockReviewQueue : []);
   const today = new Date();
   const dateLabel = today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
-  const openTodayShadowing = (expressionId: string) => router.push(`/shadowing/${expressionId}`);
+  const openTodayDialogue = () => router.push(`/dialogue/${mockTodayDialogue.id}` as Href);
   const bottomContentPadding = 168 + Math.max(insets.bottom, 48);
 
   if (isInitialLoading) {
@@ -116,13 +117,13 @@ export default function HomeScreen() {
           <StreakBadge days={stats.streak.days} weekFlags={stats.streak.weekFlags} />
         </View>
 
-        {/* Today's session card */}
+        {/* Today's session card — 대화 듣기 중심 */}
         <View style={styles.section}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`오늘의 학습 ${sessionExpression.situationKo} 쉐도잉 시작`}
+            accessibilityLabel={`오늘의 대화 ${mockTodayDialogue.situationKo} 듣기 시작`}
             hitSlop={6}
-            onPress={() => openTodayShadowing(sessionExpression.id)}
+            onPress={openTodayDialogue}
             style={({ pressed }) => [
               styles.sessionCard,
               shadow.cardFloat,
@@ -132,17 +133,17 @@ export default function HomeScreen() {
             {/* Dark top */}
             <View style={styles.sessionTop}>
               <View style={styles.sessionMeta}>
-                <SectionLabel light>오늘의 학습</SectionLabel>
-                <Text style={styles.sessionTime}>20 MIN</Text>
+                <SectionLabel light>오늘의 대화</SectionLabel>
+                <Text style={styles.sessionTime}>{mockTodayDialogue.turns.length} TURNS</Text>
               </View>
-              <Text style={styles.sessionTitle}>{sessionExpression.situationKo}</Text>
+              <Text style={styles.sessionTitle}>{mockTodayDialogue.situationKo}</Text>
               <Text style={styles.sessionSub}>
-                {sessionExpression.category === 'business' ? '비즈니스' : sessionExpression.category.toUpperCase()} · Level {sessionExpression.level} · {sessionExpression.chunks.length}개 청크
+                {mockTodayDialogue.category === 'business' ? '비즈니스' : mockTodayDialogue.category.toUpperCase()} · Level {mockTodayDialogue.level} · 키 표현 {mockTodayDialogue.turns.filter((tr) => tr.expressionId).length}개
               </Text>
               <View style={styles.sessionActions}>
                 <View style={styles.startBtn}>
                   <PlayIcon size={14} />
-                  <Text style={styles.startBtnText}>쉐도잉 시작</Text>
+                  <Text style={styles.startBtnText}>대화 듣기 시작</Text>
                 </View>
                 <View style={styles.chevronBtn}>
                   <ChevronIcon color="rgba(245,240,230,0.6)" />

@@ -62,3 +62,28 @@ export interface SituationItem {
   completedExpressions: number;
   bestScore?: number;
 }
+
+export type DialogueSpeaker = 'A' | 'B';
+
+export interface DialogueTurn {
+  id: string;
+  speaker: DialogueSpeaker;
+  textEn: string;
+  textKo?: string;
+  /** 이 턴이 학습 대상 표현인 경우, 해당 Expression id 참조 */
+  expressionId?: string;
+}
+
+export interface Dialogue {
+  id: string;
+  situationKo: string;
+  situationEn?: string;
+  category: Category;
+  level: ExpressionLevel;
+  /** OpenAI TTS voice id (alloy/echo/fable/onyx/nova/shimmer 등) */
+  speakerAVoice: string;
+  speakerBVoice: string;
+  speakerAName?: string;
+  speakerBName?: string;
+  turns: DialogueTurn[];
+}
