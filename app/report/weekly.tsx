@@ -85,7 +85,7 @@ export default function WeeklyReportScreen() {
           {/* CTA */}
           <Pressable
             style={({ pressed }) => [styles.ctaBtn, pressed && { opacity: 0.88 }]}
-            onPress={() => router.push('/(tabs)/review')}
+            onPress={() => router.push('/review')}
           >
             <Text style={styles.ctaBtnText}>이 패턴들로 복습 세션 만들기 →</Text>
           </Pressable>

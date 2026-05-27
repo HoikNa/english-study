@@ -9,7 +9,6 @@ import { Card } from '@/components/common/Card';
 import { SectionLabel } from '@/components/common/SectionLabel';
 import { ScreenState } from '@/components/common/ScreenState';
 import { PlayIcon, ChevronIcon } from '@/components/common/Icons';
-import { ProgressLine } from '@/components/common/ProgressLine';
 import { StreakBadge } from '@/components/home/StreakBadge';
 import { mockExpressions, mockReviewQueue, mockStats, mockStreak } from '@/lib/mocks/expressions.mock';
 import { useProgressStats, useReviewToday, useTodayExpression } from '@/hooks/useLearningData';
@@ -178,7 +177,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <SectionLabel>복습 큐</SectionLabel>
-            <Pressable onPress={() => router.push('/(tabs)/review')}>
+            <Pressable onPress={() => router.push('/review')}>
               <Text style={styles.seeAll}>{reviewQueue.length}개 대기 · 최근 학습 →</Text>
             </Pressable>
           </View>
@@ -195,7 +194,7 @@ export default function HomeScreen() {
                   styles.reviewCard,
                   pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
                 ]}
-                onPress={() => router.push('/(tabs)/review')}
+                onPress={() => router.push('/review')}
               >
                 <Text style={[styles.reviewScore, { color: item.lastScore < 60 ? C.rose : C.gold }]}>
                   {item.lastScore}점
@@ -243,35 +242,17 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* Continue learning */}
+        {/* 카테고리 둘러보기 */}
         <View style={styles.section}>
-          <SectionLabel style={{ marginBottom: 10 }}>이어서 학습</SectionLabel>
-          <View style={styles.continueList}>
-            {[
-              { tag: '생활', name: '집 계약 / 렌트', n: '3/8', pct: 38, color: C.sage },
-              { tag: '비즈니스', name: '요구사항 협의', n: '5/12', pct: 42, color: C.accent },
-            ].map((row, i) => (
-              <Pressable
-                key={i}
-                style={({ pressed }) => [
-                  styles.continueRow,
-                  pressed && { opacity: 0.8, transform: [{ scale: 0.98 }] },
-                ]}
-                onPress={() => router.push('/(tabs)/categories')}
-              >
-                <View style={styles.continueTag}>
-                  <Text style={styles.continueTagText}>{row.tag}</Text>
-                </View>
-                <View style={styles.continueInfo}>
-                  <Text style={styles.continueName}>{row.name}</Text>
-                  <View style={styles.continueProgress}>
-                    <ProgressLine value={row.pct} label={row.n} fillClassName={row.color === C.sage ? 'bg-sage' : 'bg-accent'} />
-                  </View>
-                </View>
-                <ChevronIcon />
-              </Pressable>
-            ))}
-          </View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="학습 카테고리 둘러보기"
+            onPress={() => router.push('/(tabs)/categories')}
+            style={({ pressed }) => [styles.browseBtn, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={styles.browseTitle}>카테고리 둘러보기</Text>
+            <Text style={styles.browseSub}>생활 · 비즈니스 · IT/통신 표현 모음</Text>
+          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -344,20 +325,17 @@ const styles = StyleSheet.create({
   emptyReviewTitle: { color: C.ink, fontSize: 13, fontWeight: '800' },
   emptyReviewSub: { color: C.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
 
-  continueList: { gap: 8 },
-  continueRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    padding: 12, paddingHorizontal: 14,
-    backgroundColor: C.card, borderRadius: 14, borderWidth: 0.5, borderColor: C.line,
+  browseBtn: {
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: C.card,
+    borderRadius: 14,
+    borderWidth: 0.5,
+    borderColor: C.line,
+    gap: 4,
   },
-  continueTag: {
-    width: 38, height: 38, borderRadius: 10, backgroundColor: C.paper2,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  continueTagText: { fontSize: 10, fontWeight: '700', color: C.ink2 },
-  continueInfo: { flex: 1 },
-  continueName: { fontSize: 13, fontWeight: '600' },
-  continueProgress: { marginTop: 4 },
+  browseTitle: { fontSize: 13, fontWeight: '700', color: C.ink },
+  browseSub: { fontSize: 11, color: C.muted },
 
   simulateGrid: { flexDirection: 'row', gap: 10 },
   simulateCard: {
