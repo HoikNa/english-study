@@ -38,7 +38,7 @@ Date: 2026-05-26
 | ✅ | Add CloudWatch alarm for Lambda error rate and duration spikes. |
 | ◐ | Deploy and observe API Gateway throttling behavior under controlled load. Deployed values are burst 20 and rate 10 req/sec; controlled load test remains. |
 | ◐ | Track Secrets Manager monthly cost after production rollout; currently one app secret is deployed. |
-| ☐ | Implement or remove `GEMINI_FALLBACK_ENABLED`; currently it is configuration only. |
+| ✅ | Implement or remove `GEMINI_FALLBACK_ENABLED`; removed on 2026-05-27 (descope, no Gemini SDK or fallback path was ever implemented; 1-user budget makes fallback trigger unnecessary). |
 | ☐ | Add a monthly cost review routine before beta expansion. |
 
 ## Current Observed Baseline

@@ -99,7 +99,6 @@ Globals:
         OPENAI_TTS_VOICE: !Ref OpenAiTtsVoice
         SUPABASE_STORAGE_BUCKET: !Ref SupabaseStorageBucket
         GPT_MONTHLY_BUDGET_USD: "30"
-        GEMINI_FALLBACK_ENABLED: "true"
         AI_RATE_LIMIT_WINDOW_SECONDS: !Ref AiRateLimitWindowSeconds
         AI_RATE_LIMIT_MAX_REQUESTS: !Ref AiRateLimitMaxRequests
         SENTRY_TRACES_SAMPLE_RATE: !Ref SentryTracesSampleRate

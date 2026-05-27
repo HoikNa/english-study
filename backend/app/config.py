@@ -48,7 +48,6 @@ class Settings(BaseSettings):
     supabase_storage_bucket: str = Field(default="tts-cache", alias="SUPABASE_STORAGE_BUCKET")
 
     gpt_monthly_budget_usd: float = Field(default=30, alias="GPT_MONTHLY_BUDGET_USD")
-    gemini_fallback_enabled: bool = Field(default=True, alias="GEMINI_FALLBACK_ENABLED")
     ai_rate_limit_window_seconds: int = Field(default=60, alias="AI_RATE_LIMIT_WINDOW_SECONDS")
     ai_rate_limit_max_requests: int = Field(default=30, alias="AI_RATE_LIMIT_MAX_REQUESTS")
     sentry_dsn: str | None = Field(default=None, alias="SENTRY_DSN")

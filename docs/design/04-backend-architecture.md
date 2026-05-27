@@ -98,9 +98,8 @@ ENVIRONMENT=development
 
 # Cost Control
 GPT_MONTHLY_BUDGET_USD=30
-GEMINI_FALLBACK_ENABLED=true
 ```
 
 ---
 
-> ✅ 역검토 포인트: cost_guard.py의 Gemini 전환 플래그가 gpt_coach.py 모든 호출 경로에서 적용되는지 확인.
+> ℹ️ 2026-05-27 업데이트: `GEMINI_FALLBACK_ENABLED` 및 관련 `cost_guard.py` / Gemini 전환 경로는 descope됨. 1인 사용자 비용 규모(USD 30 예산)에서 fallback 트리거 가능성이 사실상 없어 dead config로 판단, 제거.
