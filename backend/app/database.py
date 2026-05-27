@@ -149,7 +149,9 @@ def _create_sqlite_schema(conn: sqlite3.Connection) -> None:
             chunks_json TEXT NOT NULL,
             is_custom INTEGER NOT NULL DEFAULT 0,
             is_deleted INTEGER NOT NULL DEFAULT 0,
-            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            owner_user_id TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (owner_user_id) REFERENCES users(id)
         );
 
         CREATE TABLE IF NOT EXISTS sessions (
@@ -233,6 +235,7 @@ def _create_postgres_schema(conn: PostgresConnection) -> None:
             chunks_json TEXT NOT NULL,
             is_custom BOOLEAN NOT NULL DEFAULT FALSE,
             is_deleted BOOLEAN NOT NULL DEFAULT FALSE,
+            owner_user_id TEXT REFERENCES users(id),
             created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP::TEXT)
         );
 
@@ -397,6 +400,8 @@ def _migrate_database(conn, backend: str) -> None:
     expression_columns = {row["name"] for row in conn.execute("PRAGMA table_info(expressions)").fetchall()}
     if "is_deleted" not in expression_columns:
         conn.execute("ALTER TABLE expressions ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0")
+    if "owner_user_id" not in expression_columns:
+        conn.execute("ALTER TABLE expressions ADD COLUMN owner_user_id TEXT REFERENCES users(id)")
 
 
 def _migrate_postgres_database(conn: PostgresConnection) -> None:
@@ -410,6 +415,8 @@ def _migrate_postgres_database(conn: PostgresConnection) -> None:
     expression_columns = _column_names(conn, "expressions", "postgresql")
     if "is_deleted" not in expression_columns:
         conn.execute("ALTER TABLE expressions ADD COLUMN is_deleted BOOLEAN NOT NULL DEFAULT FALSE")
+    if "owner_user_id" not in expression_columns:
+        conn.execute("ALTER TABLE expressions ADD COLUMN owner_user_id TEXT REFERENCES users(id)")
 
 
 def ensure_database() -> None:

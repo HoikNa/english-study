@@ -82,6 +82,6 @@ def test_custom_expression_soft_delete_hides_expression(monkeypatch, tmp_path):
 
     assert repository.get_expression(expression.id).id == expression.id
 
-    repository.delete_custom_expression(expression.id)
+    repository.delete_custom_expression(expression.id, user_id="dev-user")
 
     assert all(item.id != expression.id for item in repository.list_expressions(category="custom"))

@@ -106,14 +106,15 @@ def _inspect_wav_audio(audio_bytes: bytes) -> tuple[float, float]:
 
 
 def _validate_recording_for_speech(audio_bytes: bytes) -> None:
+    settings = get_settings()
     duration_sec, rms = _inspect_wav_audio(audio_bytes)
     print(f"pronunciation_audio_check duration_sec={duration_sec:.2f} rms={rms:.2f}")
-    if duration_sec < 1.0:
+    if settings.azure_min_duration_sec > 0 and duration_sec < settings.azure_min_duration_sec:
         raise HTTPException(
             status_code=422,
             detail=f"녹음이 너무 짧습니다. 2초 이상 또렷하게 말해 주세요. duration={duration_sec:.1f}s",
         )
-    if rms < 20:
+    if settings.azure_min_rms > 0 and rms < settings.azure_min_rms:
         raise HTTPException(
             status_code=422,
             detail=f"녹음 음량이 너무 작거나 음성이 없습니다. 마이크에 가까이 대고 다시 말해 주세요. volume={rms:.1f}",

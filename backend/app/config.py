@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     azure_speech_key: str | None = Field(default=None, alias="AZURE_SPEECH_KEY")
     azure_speech_region: str = Field(default="eastus", alias="AZURE_SPEECH_REGION")
     ffmpeg_binary: str = Field(default="ffmpeg", alias="FFMPEG_BINARY")
+    azure_min_duration_sec: float = Field(default=1.0, alias="AZURE_MIN_DURATION_SEC")
+    azure_min_rms: float = Field(default=20.0, alias="AZURE_MIN_RMS")
 
     # OpenAI
     openai_api_key: str | None = Field(default=None, alias="OPENAI_API_KEY")
@@ -69,10 +71,18 @@ _SECRET_FIELD_MAP = {
 def _load_secret_values(secret_id: str) -> dict[str, str]:
     try:
         import boto3  # type: ignore[import-untyped]
+        from botocore.config import Config  # type: ignore[import-untyped]
     except ImportError as exc:
         raise RuntimeError("boto3 is required to load APP_SECRET_ID") from exc
 
-    client = boto3.client("secretsmanager")
+    client = boto3.client(
+        "secretsmanager",
+        config=Config(
+            connect_timeout=2,
+            read_timeout=3,
+            retries={"max_attempts": 2, "mode": "standard"},
+        ),
+    )
     response = client.get_secret_value(SecretId=secret_id)
     secret_string = response.get("SecretString")
     if not secret_string:
