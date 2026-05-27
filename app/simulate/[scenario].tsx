@@ -9,8 +9,10 @@ import { MicIcon, ChevronIcon } from '@/components/common/Icons';
 import { ChatBubble } from '@/components/simulate/ChatBubble';
 import { SuggestionPill } from '@/components/simulate/SuggestionPill';
 import { ScreenState } from '@/components/common/ScreenState';
+import axios from 'axios';
 import { useStartSimulation, useSendSimulationMessage } from '@/hooks/useSimulation';
 import { getApiErrorMessage } from '@/lib/api';
+import { captureSentryException } from '@/lib/sentry';
 
 interface Message {
   id: string;
@@ -78,8 +80,18 @@ export default function SimulateScreen() {
           text: result.firstMessage,
           time: now(),
         }]);
-      } catch {
-        // handled below via mutation state
+      } catch (err) {
+        const debug: Record<string, unknown> = { scenario };
+        if (axios.isAxiosError(err)) {
+          debug.code = err.code;
+          debug.message = err.message;
+          debug.url = err.config?.url;
+          debug.method = err.config?.method;
+          debug.status = err.response?.status;
+          debug.responseData = err.response?.data;
+          debug.requestSent = Boolean(err.request);
+        }
+        captureSentryException(err, debug);
       } finally {
         if (!cancelled) setIsBootstrapped(true);
       }
@@ -152,11 +164,18 @@ export default function SimulateScreen() {
   }
 
   if (startError) {
+    let detail = getApiErrorMessage(startError);
+    if (axios.isAxiosError(startError)) {
+      const parts = [detail];
+      if (startError.code) parts.push(`code=${startError.code}`);
+      if (startError.config?.url) parts.push(`url=${startError.config.method?.toUpperCase() ?? 'GET'} ${startError.config.baseURL ?? ''}${startError.config.url}`);
+      detail = parts.join('\n');
+    }
     return (
       <SafeAreaView style={styles.safe}>
         <ScreenState
           title="시뮬레이션을 불러오지 못했어요"
-          message={getApiErrorMessage(startError)}
+          message={detail}
           actionLabel="다시 시도"
           onAction={() => {
             startSimulation.reset();

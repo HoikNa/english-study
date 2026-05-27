@@ -40,3 +40,13 @@ export function captureSentryMessage(message: string): string | undefined {
   void Sentry.flush();
   return eventId;
 }
+
+export function captureSentryException(error: unknown, context?: Record<string, unknown>): string | undefined {
+  if (!isSentryEnabled) {
+    return undefined;
+  }
+
+  const eventId = Sentry.captureException(error, context ? { extra: context } : undefined);
+  void Sentry.flush();
+  return eventId;
+}

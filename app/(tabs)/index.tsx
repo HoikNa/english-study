@@ -365,12 +365,14 @@ const styles = StyleSheet.create({
   addExpressionBtn: {
     paddingVertical: 18,
     paddingHorizontal: 18,
-    backgroundColor: C.accent,
+    backgroundColor: C.ink,
     borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: C.accent,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  addExpressionText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+  addExpressionText: { color: C.paper, fontSize: 15, fontWeight: '800' },
 });
