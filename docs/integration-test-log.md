@@ -38,6 +38,8 @@ Supabase Storage.
 | F-09 Today expression recommendation | Pass deployed | `/expressions/today` now returns the first due review expression if available, otherwise an unpracticed expression. Deployed API check returned a different recommendation after saving a session for the first recommendation. |
 | D-02 Android dev build v3 | Pass built | EAS development APK build `0d84afa2-5b3c-4ad9-b577-5fb74f231378` finished. APK: `https://expo.dev/artifacts/eas/2EPw4kkypA1WhgwBuXtWe7.apk`. |
 | D-03 Android device E2E v3 | Pass device | User-confirmed pass on the installed Android development build after JS reload. Confirmed sign-in, today's learning entry, TTS listen playback, visible recording CTA, real mic analysis, feedback save, next-expression navigation, review recent data, and bottom safe-area spacing. |
+| D-04 Android dev build v4 (Sentry native SDK) | Pass built | EAS development APK build `dc1cf650-05ef-40ae-8085-e3dc030784ff` finished with `@sentry/react-native` plugin configured for `korea-telecom/python-0k` and `SENTRY_AUTH_TOKEN` registered as EAS project secret. APK: `https://expo.dev/artifacts/eas/tbteihUzNkiGsA5q8iZsFH.apk`. |
+| D-05 Device Sentry probe | Pass device | User installed the v4 APK, connected the dev-client to a Metro tunnel so `__DEV__` was true, and triggered Settings → `Sentry 테스트 전송`. The `captureMessage` call returned event id `89225eb4...`, confirming the native `@sentry/react-native` SDK is wired and reaches `korea-telecom/python-0k`. |
 | D-01 Lambda deployment | Pass deployed | `sam validate`, `sam build`, and `sam deploy` succeeded for stack `speakready-my-backend` in `ap-northeast-2`. |
 
 ## Fixes Applied

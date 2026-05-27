@@ -42,7 +42,13 @@
         }
       ],
       "expo-font",
-      "@sentry/react-native"
+      [
+        "@sentry/react-native",
+        {
+          "organization": "korea-telecom",
+          "project": "python-0k"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

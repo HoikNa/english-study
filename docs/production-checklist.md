@@ -11,7 +11,7 @@ Date: 2026-05-26
 | Backend deployment | Pass | SAM stack `speakready-my-backend` is deployed in `ap-northeast-2`. |
 | Android dev build | Pass | EAS development build v3 installed and tested on device. |
 | Cost sanity | Partial | App-level usage is logged in `docs/cost-actual-log.md`; provider billing dashboards still need reconciliation. |
-| Sentry/monitoring | Partial | Backend Sentry integration is deployed and `SENTRY_DSN` is set in Secrets Manager. Frontend Sentry still needs a native SDK build. |
+| Sentry/monitoring | Pass | Backend Sentry integration is deployed and `SENTRY_DSN` is set in Secrets Manager. Frontend native SDK is bundled in dev build v4 (`dc1cf650-05ef-40ae-8085-e3dc030784ff`); device probe returned event id `89225eb4...` from Settings → `Sentry 테스트 전송`. |
 
 ## Required Before Public Beta
 
@@ -31,7 +31,7 @@ Date: 2026-05-26
 
 | Status | Item | Notes |
 | --- | --- | --- |
-| ◐ | Add Sentry or equivalent client/backend error reporting | Backend Sentry integration is active through Secrets Manager. Frontend client reporting still needs native SDK wiring and a new build. |
+| ✅ | Add Sentry or equivalent client/backend error reporting | Backend Sentry integration is active through Secrets Manager. Frontend `@sentry/react-native` plugin is configured for `korea-telecom/python-0k`, `SENTRY_AUTH_TOKEN` is registered as an EAS project secret for sourcemap upload, and dev build v4 bundles the native SDK. Device probe via Settings → `Sentry 테스트 전송` returned event id `89225eb4...`. |
 | ✅ | Add API throttling or rate limits for AI endpoints | API Gateway default route throttling is deployed and verified; in-app `/ai/*` limiter is also enabled. |
 | ✅ | Add account deletion/export path | `GET /api/v1/auth/me/export` exports account-scoped learning data. `DELETE /api/v1/auth/me` deletes the authenticated account, sessions, review queue, and refresh tokens. |
 | ☐ | Add a simple status page or runbook link | Reference `docs/incident-response.md`. |
@@ -61,3 +61,11 @@ The app is ready to leave Stage 5 integration and enter Stage 6 production-readi
 | Account deletion/export API | Added authenticated `GET /api/v1/auth/me/export` and `DELETE /api/v1/auth/me`; local tests confirm export returns account-scoped sessions/review queue and delete removes account, sessions, review queue, and refresh tokens. Deployed smoke test passed: register/session/review/export/delete returned `201/201/201/200/204`, export returned `1` session and `1` review item, then old access/refresh tokens returned `401`. Settings screen now exposes export and account deletion actions. |
 | Backend Sentry integration | Added optional `sentry-sdk` initialization with `send_default_pii=false`, `SENTRY_DSN` loaded from Secrets Manager, and `SENTRY_TRACES_SAMPLE_RATE=0.05`. `npm run backend:test` passed with 39 tests and 73.39% coverage; `sam validate --lint`, `sam build`, and `sam deploy` passed. Deployed `/health` returned `{"status":"ok"}`. A follow-up `sam deploy` set `SENTRY_DSN`; Secrets Manager confirms the key is present and set. |
 | Backend Sentry probe | Added token-protected `/api/v1/ops/sentry-test`, deployed it, and confirmed a probe event submission. The endpoint returned event id `69cbc032acc64cd8b395e6d1430d9ca7`. |
+
+## 2026-05-27 Progress
+
+| Item | Result |
+| --- | --- |
+| Frontend Sentry native SDK wiring | Replaced the bare `@sentry/react-native` Expo plugin with `{ organization: "korea-telecom", project: "python-0k" }` so EAS builds can upload sourcemaps. `SENTRY_AUTH_TOKEN` was registered via `eas secret:create` (project scope). `npm run typecheck` passed. |
+| Android dev build v4 | Triggered EAS development build `dc1cf650-05ef-40ae-8085-e3dc030784ff` against commit `078377d`. Build finished in ~16 min. APK: `https://expo.dev/artifacts/eas/tbteihUzNkiGsA5q8iZsFH.apk`. |
+| Frontend Sentry device probe | User installed the v4 APK, connected the dev-client to a Metro tunnel (`exp://hfxn3bw-hoik-8081.exp.direct`) so `__DEV__=true`, and triggered Settings → `Sentry 테스트 전송`. The probe returned event id `89225eb4...`, confirming the native SDK is wired end-to-end to `korea-telecom/python-0k`. Local `.env` now includes `EXPO_PUBLIC_SENTRY_DSN` so Metro-served builds keep Sentry ON. |
