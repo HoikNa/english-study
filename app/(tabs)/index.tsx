@@ -173,105 +173,100 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* Review queue */}
+        {/* 복습 큐 — paper2 큰 카드, 안에 흰 sub 카드 */}
         <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <SectionLabel>복습 큐</SectionLabel>
-            <Pressable onPress={() => router.push('/review')}>
-              <Text style={styles.seeAll}>{reviewQueue.length}개 대기 · 최근 학습 →</Text>
+          <View style={styles.contentCard}>
+            <View style={styles.contentCardHead}>
+              <Text style={styles.contentCardTitle}>복습 큐</Text>
+              <Pressable onPress={() => router.push('/review')}>
+                <Text style={styles.contentCardLink}>{reviewQueue.length}개 대기 →</Text>
+              </Pressable>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewScroll}>
+              {reviewQueue.length === 0 ? (
+                <View style={styles.emptyReviewCard}>
+                  <Text style={styles.emptyReviewTitle}>오늘 복습 없음</Text>
+                  <Text style={styles.emptyReviewSub}>카드를 열면 최근 학습 데이터와 다시 녹음 버튼을 볼 수 있어요.</Text>
+                </View>
+              ) : reviewQueue.map((item) => (
+                <Pressable
+                  key={item.id}
+                  style={({ pressed }) => [
+                    styles.reviewCard,
+                    pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
+                  ]}
+                  onPress={() => router.push('/review')}
+                >
+                  <Text style={[styles.reviewScore, { color: item.lastScore < 60 ? C.rose : C.gold }]}>
+                    {item.lastScore}점
+                  </Text>
+                  <Text style={styles.reviewEn} numberOfLines={1}>{item.expression.textEn}</Text>
+                  <Text style={styles.reviewKo}>
+                    {item.expression.situationKo} · {item.nextReviewAt < new Date().toISOString() ? '오늘' : '내일'}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+
+        {/* AI 시뮬레이션 — paper2 큰 카드, 안에 흰 row */}
+        <View style={styles.section}>
+          <View style={styles.contentCard}>
+            <View style={styles.contentCardHead}>
+              <Text style={styles.contentCardTitle}>AI 시뮬레이션</Text>
+              <Text style={styles.contentCardMuted}>롤플레이</Text>
+            </View>
+            <View style={styles.simulateList}>
+              {SIMULATE_SCENARIOS.map((s) => (
+                <Pressable
+                  key={s.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${s.name} 시뮬레이션 시작`}
+                  style={({ pressed }) => [styles.simulateRow, pressed && styles.simulateRowPressed]}
+                  onPress={() => router.push(`/simulate/${s.id}` as Href)}
+                >
+                  <View style={styles.simulateRowInner}>
+                    <View style={styles.simulateAvatar}>
+                      <Text style={styles.simulateAvatarText}>{s.avatar}</Text>
+                    </View>
+                    <View style={styles.simulateRowInfo}>
+                      <Text style={styles.simulateName}>{s.name}</Text>
+                      <Text style={styles.simulateBrief} numberOfLines={2}>{s.brief}</Text>
+                    </View>
+                    <ChevronIcon color={C.muted2} />
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </View>
+
+        {/* 유틸 행 (직접 추가 + 카테고리) — 미니멀 1행 텍스트 */}
+        <View style={styles.section}>
+          <View style={styles.utilList}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="내 표현 추가"
+              onPress={() => router.push('/custom/add')}
+              style={({ pressed }) => [styles.utilRow, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={styles.utilIconAccent}>+</Text>
+              <Text style={styles.utilLabel}>내 표현 만들기</Text>
+              <ChevronIcon color={C.muted2} />
+            </Pressable>
+            <View style={styles.utilDivider} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="학습 카테고리 둘러보기"
+              onPress={() => router.push('/(tabs)/categories')}
+              style={({ pressed }) => [styles.utilRow, pressed && { opacity: 0.6 }]}
+            >
+              <Text style={styles.utilIcon}>▦</Text>
+              <Text style={styles.utilLabel}>카테고리 둘러보기</Text>
+              <ChevronIcon color={C.muted2} />
             </Pressable>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.reviewScroll}>
-            {reviewQueue.length === 0 ? (
-              <View style={styles.emptyReviewCard}>
-                <Text style={styles.emptyReviewTitle}>오늘 복습 없음</Text>
-                <Text style={styles.emptyReviewSub}>카드를 열면 최근 학습 데이터와 다시 녹음 버튼을 볼 수 있어요.</Text>
-              </View>
-            ) : reviewQueue.map((item) => (
-              <Pressable
-                key={item.id}
-                style={({ pressed }) => [
-                  styles.reviewCard,
-                  pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
-                ]}
-                onPress={() => router.push('/review')}
-              >
-                <Text style={[styles.reviewScore, { color: item.lastScore < 60 ? C.rose : C.gold }]}>
-                  {item.lastScore}점
-                </Text>
-                <Text style={styles.reviewEn} numberOfLines={1}>{item.expression.textEn}</Text>
-                <Text style={styles.reviewKo}>
-                  {item.expression.situationKo} · {item.nextReviewAt < new Date().toISOString() ? '오늘' : '내일'}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* AI 시뮬레이션 (1열 리스트) */}
-        <View style={styles.section}>
-          <SectionLabel style={{ marginBottom: 10 }}>AI 시뮬레이션</SectionLabel>
-          <View style={styles.simulateList}>
-            {SIMULATE_SCENARIOS.map((s) => (
-              <Pressable
-                key={s.id}
-                accessibilityRole="button"
-                accessibilityLabel={`${s.name} 시뮬레이션 시작`}
-                style={({ pressed }) => [styles.simulateRow, pressed && styles.simulateRowPressed]}
-                onPress={() => router.push(`/simulate/${s.id}` as Href)}
-              >
-                <View style={styles.simulateRowInner}>
-                  <View style={styles.simulateAvatar}>
-                    <Text style={styles.simulateAvatarText}>{s.avatar}</Text>
-                  </View>
-                  <View style={styles.simulateRowInfo}>
-                    <Text style={styles.simulateName}>{s.name}</Text>
-                    <Text style={styles.simulateBrief} numberOfLines={2}>{s.brief}</Text>
-                  </View>
-                  <ChevronIcon color="rgba(245,240,230,0.62)" />
-                </View>
-              </Pressable>
-            ))}
-          </View>
-        </View>
-
-        {/* 표현 직접 추가 (항상 노출) — 쉐도잉 시작 카드와 동일한 강조 패턴 */}
-        <View style={styles.section}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="내 표현 추가"
-            onPress={() => router.push('/custom/add')}
-            style={({ pressed }) => [styles.addExpressionCard, shadow.cardSubtle, pressed && { opacity: 0.92 }]}
-          >
-            <View style={styles.addExpressionCardInner}>
-              <View style={styles.addExpressionInfo}>
-                <Text style={styles.addExpressionLabel}>직접 추가</Text>
-                <Text style={styles.addExpressionTitle}>나만의 표현 만들기</Text>
-                <Text style={styles.addExpressionSub}>한국어 입력 → AI가 영어로 변환</Text>
-              </View>
-              <View style={styles.addExpressionCta}>
-                <Text style={styles.addExpressionCtaText}>+</Text>
-              </View>
-            </View>
-          </Pressable>
-        </View>
-
-        {/* 카테고리 둘러보기 */}
-        <View style={styles.section}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="학습 카테고리 둘러보기"
-            onPress={() => router.push('/(tabs)/categories')}
-            style={({ pressed }) => [styles.browseBtn, pressed && { opacity: 0.92 }]}
-          >
-            <View style={styles.browseBtnInner}>
-              <View style={styles.browseInfo}>
-                <Text style={styles.browseTitle}>카테고리 둘러보기</Text>
-                <Text style={styles.browseSub}>생활 · 비즈니스 · IT/통신 표현 모음</Text>
-              </View>
-              <ChevronIcon color="rgba(245,240,230,0.62)" />
-            </View>
-          </Pressable>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -282,8 +277,6 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.paper },
   scroll: { paddingTop: 8 },
   section: { paddingHorizontal: spacing.screenH, marginBottom: 12 },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 },
-  seeAll: { fontSize: 11, color: C.accent, fontWeight: '600' },
 
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
@@ -344,72 +337,62 @@ const styles = StyleSheet.create({
   emptyReviewTitle: { color: C.ink, fontSize: 13, fontWeight: '800' },
   emptyReviewSub: { color: C.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
 
-  browseBtn: {
-    borderRadius: 16,
-    overflow: 'hidden',
+  // Concept B: paper2 큰 컨테이너 카드 (복습 큐 / AI 시뮬레이션 공용)
+  contentCard: {
+    backgroundColor: C.paper2,
+    borderRadius: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    gap: 12,
   },
-  browseBtnInner: {
+  contentCardHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    backgroundColor: C.ink,
+    justifyContent: 'space-between',
   },
-  browseInfo: { flex: 1 },
-  browseTitle: { fontSize: 14, fontWeight: '700', color: C.paper },
-  browseSub: { fontSize: 11, color: 'rgba(245,240,230,0.62)', marginTop: 3 },
+  contentCardTitle: { fontSize: 16, fontWeight: '800', color: C.ink },
+  contentCardLink: { fontSize: 12, fontWeight: '700', color: C.accent },
+  contentCardMuted: { fontSize: 11, fontWeight: '700', color: C.muted },
 
-  simulateList: { gap: 10 },
+  // AI 시뮬레이션 row (white, inside paper2)
+  simulateList: { gap: 8 },
   simulateRow: {
-    borderRadius: 16,
+    borderRadius: 12,
     overflow: 'hidden',
   },
   simulateRowInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: C.ink,
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    backgroundColor: C.card,
+    borderWidth: 0.5,
+    borderColor: C.line,
+    borderRadius: 12,
   },
-  simulateRowPressed: { opacity: 0.92 },
+  simulateRowPressed: { opacity: 0.85 },
   simulateRowInfo: { flex: 1, minWidth: 0 },
   simulateAvatar: {
-    width: 40, height: 40, borderRadius: 20, backgroundColor: C.paper2,
+    width: 36, height: 36, borderRadius: 18, backgroundColor: C.paper2,
     alignItems: 'center', justifyContent: 'center',
   },
   simulateAvatarText: { fontSize: 14, fontWeight: '700', color: C.ink },
-  simulateName: { fontSize: 14, fontWeight: '700', color: C.paper },
-  simulateBrief: { fontSize: 12, lineHeight: 16, color: 'rgba(245,240,230,0.62)', marginTop: 3 },
+  simulateName: { fontSize: 13, fontWeight: '700', color: C.ink },
+  simulateBrief: { fontSize: 11, lineHeight: 14, color: C.muted, marginTop: 2 },
 
-  addExpressionCard: {
-    borderRadius: 18,
-    overflow: 'hidden',
+  // 유틸 행 (직접 추가 + 카테고리) — 미니멀 1행
+  utilList: {
+    paddingHorizontal: 4,
   },
-  addExpressionCardInner: {
-    backgroundColor: C.ink,
+  utilRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 14,
     gap: 14,
-    paddingVertical: 18,
-    paddingHorizontal: 18,
   },
-  addExpressionInfo: { flex: 1 },
-  addExpressionLabel: {
-    color: 'rgba(245,240,230,0.62)',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.1,
-    textTransform: 'uppercase',
-    fontFamily: 'InterSemiBold',
-    marginBottom: 4,
-  },
-  addExpressionTitle: { color: C.paper, fontSize: 17, fontWeight: '800' },
-  addExpressionSub: { color: 'rgba(245,240,230,0.62)', fontSize: 12, marginTop: 3 },
-  addExpressionCta: {
-    width: 52, height: 52, borderRadius: 16, backgroundColor: C.accent,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  addExpressionCtaText: { color: '#fff', fontSize: 28, fontWeight: '800', lineHeight: 30 },
+  utilIconAccent: { fontSize: 18, fontWeight: '800', color: C.accent, width: 20, textAlign: 'center' },
+  utilIcon: { fontSize: 14, fontWeight: '700', color: C.muted, width: 20, textAlign: 'center' },
+  utilLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: C.ink },
+  utilDivider: { height: 0.5, backgroundColor: C.line },
 });
