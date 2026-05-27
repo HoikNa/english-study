@@ -233,15 +233,24 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* 표현 직접 추가 (항상 노출) */}
+        {/* 표현 직접 추가 (항상 노출) — 쉐도잉 시작 카드와 동일한 강조 패턴 */}
         <View style={styles.section}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="내 표현 추가"
             onPress={() => router.push('/custom/add')}
-            style={({ pressed }) => [styles.addExpressionBtn, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.addExpressionCard, shadow.cardSubtle, pressed && { opacity: 0.92 }]}
           >
-            <Text style={styles.addExpressionText}>+ 내 표현 추가</Text>
+            <View style={styles.addExpressionCardInner}>
+              <View style={styles.addExpressionInfo}>
+                <Text style={styles.addExpressionLabel}>직접 추가</Text>
+                <Text style={styles.addExpressionTitle}>나만의 표현 만들기</Text>
+                <Text style={styles.addExpressionSub}>한국어 입력 → AI가 영어로 변환</Text>
+              </View>
+              <View style={styles.addExpressionCta}>
+                <Text style={styles.addExpressionCtaText}>+</Text>
+              </View>
+            </View>
           </Pressable>
         </View>
 
@@ -362,17 +371,33 @@ const styles = StyleSheet.create({
   simulateName: { fontSize: 13, fontWeight: '700', color: C.ink },
   simulateBrief: { fontSize: 11, lineHeight: 15, color: C.muted, marginTop: 2 },
 
-  addExpressionBtn: {
-    paddingVertical: 18,
-    paddingHorizontal: 18,
+  addExpressionCard: {
     backgroundColor: C.ink,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: C.accent,
+    borderRadius: 18,
+    overflow: 'hidden',
+  },
+  addExpressionCardInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    gap: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
   },
-  addExpressionText: { color: C.paper, fontSize: 15, fontWeight: '800' },
+  addExpressionInfo: { flex: 1 },
+  addExpressionLabel: {
+    color: 'rgba(245,240,230,0.62)',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 1.1,
+    textTransform: 'uppercase',
+    fontFamily: 'InterSemiBold',
+    marginBottom: 4,
+  },
+  addExpressionTitle: { color: C.paper, fontSize: 17, fontWeight: '800' },
+  addExpressionSub: { color: 'rgba(245,240,230,0.62)', fontSize: 12, marginTop: 3 },
+  addExpressionCta: {
+    width: 52, height: 52, borderRadius: 16, backgroundColor: C.accent,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  addExpressionCtaText: { color: '#fff', fontSize: 28, fontWeight: '800', lineHeight: 30 },
 });
