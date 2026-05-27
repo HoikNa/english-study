@@ -24,6 +24,11 @@ const FALLBACK_STATS = {
   streak: { days: 0, weekFlags: [false, false, false, false, false, false, false] },
 };
 
+const SIMULATE_SCENARIOS: { id: string; name: string; brief: string; avatar: string }[] = [
+  { id: 'iot-meeting', name: 'Marcus · CTO', brief: 'IoT 통합 첫 미팅. 회사 역량·레이턴시·아키텍처 강점을 설득.', avatar: 'M' },
+  { id: 'requirements', name: 'Sarah · PM', brief: '요구사항 협의. 수락 조건·이해관계자 기대치 조율.', avatar: 'S' },
+];
+
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
@@ -204,6 +209,40 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
+        {/* AI 시뮬레이션 */}
+        <View style={styles.section}>
+          <SectionLabel style={{ marginBottom: 10 }}>AI 시뮬레이션</SectionLabel>
+          <View style={styles.simulateGrid}>
+            {SIMULATE_SCENARIOS.map((s) => (
+              <Pressable
+                key={s.id}
+                accessibilityRole="button"
+                accessibilityLabel={`${s.name} 시뮬레이션 시작`}
+                style={({ pressed }) => [styles.simulateCard, pressed && styles.simulateCardPressed]}
+                onPress={() => router.push(`/simulate/${s.id}` as Href)}
+              >
+                <View style={styles.simulateAvatar}>
+                  <Text style={styles.simulateAvatarText}>{s.avatar}</Text>
+                </View>
+                <Text style={styles.simulateName}>{s.name}</Text>
+                <Text style={styles.simulateBrief} numberOfLines={3}>{s.brief}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        {/* 표현 직접 추가 (항상 노출) */}
+        <View style={styles.section}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="내 표현 추가"
+            onPress={() => router.push('/custom/add')}
+            style={({ pressed }) => [styles.addExpressionBtn, pressed && { opacity: 0.85 }]}
+          >
+            <Text style={styles.addExpressionText}>+ 내 표현 추가</Text>
+          </Pressable>
+        </View>
+
         {/* Continue learning */}
         <View style={styles.section}>
           <SectionLabel style={{ marginBottom: 10 }}>이어서 학습</SectionLabel>
@@ -319,4 +358,32 @@ const styles = StyleSheet.create({
   continueInfo: { flex: 1 },
   continueName: { fontSize: 13, fontWeight: '600' },
   continueProgress: { marginTop: 4 },
+
+  simulateGrid: { flexDirection: 'row', gap: 10 },
+  simulateCard: {
+    flex: 1,
+    padding: 14,
+    backgroundColor: C.card,
+    borderRadius: 14,
+    borderWidth: 0.5,
+    borderColor: C.line,
+    gap: 8,
+  },
+  simulateCardPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  simulateAvatar: {
+    width: 32, height: 32, borderRadius: 16, backgroundColor: C.paper2,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  simulateAvatarText: { fontSize: 13, fontWeight: '700', color: C.ink },
+  simulateName: { fontSize: 13, fontWeight: '700', color: C.ink },
+  simulateBrief: { fontSize: 11, lineHeight: 15, color: C.muted },
+
+  addExpressionBtn: {
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    backgroundColor: C.ink,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  addExpressionText: { color: C.paper, fontSize: 13, fontWeight: '700' },
 });
