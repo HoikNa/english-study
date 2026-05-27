@@ -227,7 +227,7 @@ export default function HomeScreen() {
                   <Text style={styles.simulateName}>{s.name}</Text>
                   <Text style={styles.simulateBrief} numberOfLines={2}>{s.brief}</Text>
                 </View>
-                <ChevronIcon />
+                <ChevronIcon color="rgba(245,240,230,0.62)" />
               </Pressable>
             ))}
           </View>
@@ -260,10 +260,15 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="학습 카테고리 둘러보기"
             onPress={() => router.push('/(tabs)/categories')}
-            style={({ pressed }) => [styles.browseBtn, pressed && { opacity: 0.85 }]}
+            style={({ pressed }) => [styles.browseBtn, pressed && { opacity: 0.92 }]}
           >
-            <Text style={styles.browseTitle}>카테고리 둘러보기</Text>
-            <Text style={styles.browseSub}>생활 · 비즈니스 · IT/통신 표현 모음</Text>
+            <View style={styles.browseBtnInner}>
+              <View style={styles.browseInfo}>
+                <Text style={styles.browseTitle}>카테고리 둘러보기</Text>
+                <Text style={styles.browseSub}>생활 · 비즈니스 · IT/통신 표현 모음</Text>
+              </View>
+              <ChevronIcon color="rgba(245,240,230,0.62)" />
+            </View>
           </Pressable>
         </View>
       </ScrollView>
@@ -338,38 +343,40 @@ const styles = StyleSheet.create({
   emptyReviewSub: { color: C.muted, fontSize: 11, lineHeight: 16, marginTop: 4 },
 
   browseBtn: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    backgroundColor: C.card,
-    borderRadius: 14,
-    borderWidth: 0.5,
-    borderColor: C.line,
-    gap: 4,
+    borderRadius: 16,
+    overflow: 'hidden',
   },
-  browseTitle: { fontSize: 13, fontWeight: '700', color: C.ink },
-  browseSub: { fontSize: 11, color: C.muted },
-
-  simulateList: { gap: 8 },
-  simulateRow: {
+  browseBtnInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    padding: 12,
-    paddingHorizontal: 14,
-    backgroundColor: C.card,
-    borderRadius: 14,
-    borderWidth: 0.5,
-    borderColor: C.line,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+    backgroundColor: C.ink,
   },
-  simulateRowPressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
+  browseInfo: { flex: 1 },
+  browseTitle: { fontSize: 14, fontWeight: '700', color: C.paper },
+  browseSub: { fontSize: 11, color: 'rgba(245,240,230,0.62)', marginTop: 3 },
+
+  simulateList: { gap: 10 },
+  simulateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: C.ink,
+    borderRadius: 16,
+  },
+  simulateRowPressed: { opacity: 0.92 },
   simulateRowInfo: { flex: 1, minWidth: 0 },
   simulateAvatar: {
-    width: 38, height: 38, borderRadius: 19, backgroundColor: C.paper2,
+    width: 40, height: 40, borderRadius: 20, backgroundColor: C.paper2,
     alignItems: 'center', justifyContent: 'center',
   },
   simulateAvatarText: { fontSize: 14, fontWeight: '700', color: C.ink },
-  simulateName: { fontSize: 13, fontWeight: '700', color: C.ink },
-  simulateBrief: { fontSize: 11, lineHeight: 15, color: C.muted, marginTop: 2 },
+  simulateName: { fontSize: 14, fontWeight: '700', color: C.paper },
+  simulateBrief: { fontSize: 12, lineHeight: 16, color: 'rgba(245,240,230,0.62)', marginTop: 3 },
 
   addExpressionCard: {
     borderRadius: 18,
