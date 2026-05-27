@@ -19,8 +19,20 @@ def test_settings_overlay_runtime_secret(monkeypatch):
                 )
             }
 
-    fake_boto3 = SimpleNamespace(client=lambda service: FakeSecretsClient())
+    captured_config = {}
+
+    def fake_client(service: str, config=None):
+        captured_config["service"] = service
+        captured_config["config"] = config
+        return FakeSecretsClient()
+
+    fake_boto3 = SimpleNamespace(client=fake_client)
+    fake_botocore_config = SimpleNamespace(
+        Config=lambda **kwargs: SimpleNamespace(**kwargs)
+    )
     monkeypatch.setitem(sys.modules, "boto3", fake_boto3)
+    monkeypatch.setitem(sys.modules, "botocore", SimpleNamespace(config=fake_botocore_config))
+    monkeypatch.setitem(sys.modules, "botocore.config", fake_botocore_config)
     monkeypatch.setenv("APP_SECRET_ID", "secret-arn")
     monkeypatch.setenv("DATABASE_URL", "sqlite:///local.sqlite3")
     monkeypatch.setenv("JWT_SECRET", "local-jwt")
@@ -34,5 +46,8 @@ def test_settings_overlay_runtime_secret(monkeypatch):
     assert settings.supabase_service_key == "secret-supabase"
     assert settings.sentry_dsn == "https://public@example.ingest.sentry.io/1"
     assert settings.sentry_test_token == "probe-token"
+    assert captured_config["service"] == "secretsmanager"
+    assert captured_config["config"].connect_timeout == 2
+    assert captured_config["config"].read_timeout == 3
 
     get_settings.cache_clear()

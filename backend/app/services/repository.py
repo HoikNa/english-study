@@ -230,16 +230,16 @@ def get_expression(expression_id: str) -> Expression:
     return _expression_from_row(row)
 
 
-def add_expression(expression: Expression) -> Expression:
+def add_expression(expression: Expression, owner_user_id: str | None = None) -> Expression:
     ensure_database()
     with connect() as conn:
         conn.execute(
             """
             INSERT INTO expressions (
                 id, category, situation, situation_ko, level, text_en, text_ko,
-                audio_url, chunks_json, is_custom
+                audio_url, chunks_json, is_custom, owner_user_id
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 expression.id,
@@ -252,23 +252,26 @@ def add_expression(expression: Expression) -> Expression:
                 expression.audio_url,
                 json.dumps(expression.chunks, ensure_ascii=False),
                 int(expression.is_custom),
+                owner_user_id if expression.is_custom else None,
             ),
         )
         conn.commit()
     return expression
 
 
-def delete_custom_expression(expression_id: str) -> None:
+def delete_custom_expression(expression_id: str, user_id: str) -> None:
     ensure_database()
     with connect() as conn:
         row = conn.execute(
-            f"SELECT id, is_custom FROM expressions WHERE id = ? AND {_not_deleted_clause()}",
+            f"SELECT id, is_custom, owner_user_id FROM expressions WHERE id = ? AND {_not_deleted_clause()}",
             (expression_id,),
         ).fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Expression not found")
         if not bool(row["is_custom"]):
             raise HTTPException(status_code=403, detail="Only custom expressions can be deleted")
+        if row["owner_user_id"] is not None and row["owner_user_id"] != user_id:
+            raise HTTPException(status_code=403, detail="You do not own this expression")
 
         conn.execute(
             """

@@ -69,7 +69,7 @@ def create_custom_expression(
         chunks=text_en.split(" — "),
         is_custom=True,
     )
-    return repository.add_expression(expression)
+    return repository.add_expression(expression, owner_user_id=current_user.id)
 
 
 @router.delete("/{expression_id}/custom", status_code=204)
@@ -77,5 +77,5 @@ def delete_custom_expression(
     expression_id: str,
     current_user: CurrentUser = Depends(get_current_user),
 ) -> None:
-    repository.delete_custom_expression(expression_id)
+    repository.delete_custom_expression(expression_id, user_id=current_user.id)
     return None
