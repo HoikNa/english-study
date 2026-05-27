@@ -10,22 +10,22 @@ Date: 2026-05-26
 | Real API mode | Pass | `.env` uses `EXPO_PUBLIC_USE_MOCK=false` and the deployed API Gateway URL. |
 | Backend deployment | Pass | SAM stack `speakready-my-backend` is deployed in `ap-northeast-2`. |
 | Android dev build | Pass | EAS development build v3 installed and tested on device. |
-| Cost sanity | Partial | App-level usage is logged in `docs/cost-actual-log.md`; provider billing dashboards still need reconciliation. |
+| Cost sanity | Partial | App-level usage is logged in `docs/cost-actual-log.md`; provider billing dashboards still need reconciliation. For personal side-load this is a soft requirement — track monthly using the Quick Links in `docs/incident-response.md`. |
 | Sentry/monitoring | Pass | Backend Sentry integration is deployed and `SENTRY_DSN` is set in Secrets Manager. Frontend native SDK is bundled in dev build v4 (`dc1cf650-05ef-40ae-8085-e3dc030784ff`); device probe returned event id `89225eb4...` from Settings → `Sentry 테스트 전송`. |
 
 ## Required Before Public Beta
 
 | Status | Item | Verification |
 | --- | --- | --- |
-| ◐ | Add production web/native origins to `CORS_ALLOW_ORIGINS` | Defaults now match the app scheme `speakready://`. Add the exact hosted web origin before public web hosting, then redeploy backend and verify auth. |
+| ⊘ | Add production web/native origins to `CORS_ALLOW_ORIGINS` | Deferred. Deployment mode is personal side-load only; no public web hosting is planned. Current defaults match the app scheme `speakready://` which is sufficient. Revisit if a web build is ever hosted. |
 | ✅ | Configure CloudWatch alarms for Lambda errors and latency | Deployed Lambda `Errors` and high `Duration` alarms. Both are `OK`; SNS email subscription for `bizhoik@gmail.com` is confirmed. |
 | ☐ | Reconcile OpenAI/Azure/Supabase/AWS dashboard usage | Update `docs/cost-actual-log.md` with provider dashboard numbers. |
 | ✅ | Move API keys and JWT secret to AWS Secrets Manager | Lambda env now stores only `APP_SECRET_ID`; raw DB/JWT/Azure/OpenAI/Supabase secrets were removed from Lambda env and auth smoke test passed. |
 | ✅ | Add CI checks for frontend and backend | `.github/workflows/frontend.yml` and `.github/workflows/backend.yml` confirmed green on PR #3 (2026-05-27). |
 | ✅ | Add backend coverage threshold | `pytest.ini` enforces `--cov=backend/app --cov-fail-under=50`; GitHub `Pytest with coverage` job confirmed green on PR #3 (2026-05-27). |
-| ◐ | Decide production build profile and app identifiers | Android package and iOS bundle ID are `com.hoik.speakreadymy`; production Android profile now emits an AAB and auto-increments `versionCode`. Final store metadata/assets still need review. |
+| ⊘ | Decide production build profile and app identifiers | Deferred for store metadata/assets review. Deployment mode is personal side-load only — no Play Store submission planned. Android package `com.hoik.speakreadymy`, iOS bundle id `com.hoik.speakreadymy`, AAB profile with auto-incrementing `versionCode` are already set, so the profile itself is production-ready if a submission ever happens. |
 | ✅ | Run EAS production build dry run | Android production AAB build `267f9b38-fb05-4c6b-8a29-8ebf5e7975b2` finished with app build version `4`. |
-| ◐ | Prepare store privacy disclosures | Draft privacy policy and app-store metadata are prepared; hosted public privacy URL and final review remain. |
+| ⊘ | Prepare store privacy disclosures | Deferred. Personal side-load only — no Play Store privacy URL requirement. Draft `docs/privacy-policy-draft.md` remains in repo for future reference. |
 
 ## Nice Before Beta
 
@@ -34,11 +34,11 @@ Date: 2026-05-26
 | ✅ | Add Sentry or equivalent client/backend error reporting | Backend Sentry integration is active through Secrets Manager. Frontend `@sentry/react-native` plugin is configured for `korea-telecom/python-0k`, `SENTRY_AUTH_TOKEN` is registered as an EAS project secret for sourcemap upload, and dev build v4 bundles the native SDK. Device probe via Settings → `Sentry 테스트 전송` returned event id `89225eb4...`. |
 | ✅ | Add API throttling or rate limits for AI endpoints | API Gateway default route throttling is deployed and verified; in-app `/ai/*` limiter is also enabled. |
 | ✅ | Add account deletion/export path | `GET /api/v1/auth/me/export` exports account-scoped learning data. `DELETE /api/v1/auth/me` deletes the authenticated account, sessions, review queue, and refresh tokens. |
-| ☐ | Add a simple status page or runbook link | Reference `docs/incident-response.md`. |
+| ✅ | Add a simple status page or runbook link | `docs/incident-response.md` now contains a `Quick Links` block at the top with API health, CloudWatch logs/alarms, Secrets Manager, API Gateway, Sentry, Supabase, Azure, OpenAI, and EAS dashboards. |
 
 ## Current Decision
 
-The app is ready to leave Stage 5 integration and enter Stage 6 production-readiness work. It is not ready for a public beta until monitoring, CORS, CI, cost reconciliation, and production build settings are complete.
+Deployment mode is **personal side-load only** (single user, HOIK; no Play Store submission, no public web hosting planned). Under that mode, Stage 6 is effectively complete: monitoring, CI, secrets, throttling, account export/delete, Sentry frontend+backend, CloudWatch alarms, and an incident runbook with Quick Links are all in place. The remaining `Cost sanity` row is a soft tracking item rather than a release blocker — reconcile when the monthly observed usage approaches the USD 10 alert threshold in `docs/cost-budget-plan.md`. CORS, store metadata, and a hosted privacy URL are marked `⊘ Deferred` and should be revisited only if the deployment mode changes (public web hosting or store submission).
 
 ## 2026-05-26 Progress
 
@@ -69,3 +69,5 @@ The app is ready to leave Stage 5 integration and enter Stage 6 production-readi
 | Frontend Sentry native SDK wiring | Replaced the bare `@sentry/react-native` Expo plugin with `{ organization: "korea-telecom", project: "python-0k" }` so EAS builds can upload sourcemaps. `SENTRY_AUTH_TOKEN` was registered via `eas secret:create` (project scope). `npm run typecheck` passed. |
 | Android dev build v4 | Triggered EAS development build `dc1cf650-05ef-40ae-8085-e3dc030784ff` against commit `078377d`. Build finished in ~16 min. APK: `https://expo.dev/artifacts/eas/tbteihUzNkiGsA5q8iZsFH.apk`. |
 | Frontend Sentry device probe | User installed the v4 APK, connected the dev-client to a Metro tunnel (`exp://hfxn3bw-hoik-8081.exp.direct`) so `__DEV__=true`, and triggered Settings → `Sentry 테스트 전송`. The probe returned event id `89225eb4...`, confirming the native SDK is wired end-to-end to `korea-telecom/python-0k`. Local `.env` now includes `EXPO_PUBLIC_SENTRY_DSN` so Metro-served builds keep Sentry ON. |
+| Incident runbook Quick Links | Added a `Quick Links` block at the top of `docs/incident-response.md` covering API health, CloudWatch logs/alarms, Secrets Manager, API Gateway, Sentry backend/frontend projects, Supabase, Azure Speech, OpenAI usage, EAS builds, the deployment runbook, and the budget/actual cost logs. |
+| Stage 6 scope decision | Confirmed deployment mode as personal side-load only. Marked CORS production origins, store metadata/identifiers, and hosted store privacy disclosures as `⊘ Deferred`. Cost reconciliation is left as a soft monthly tracking item against the USD 10 alert threshold in `docs/cost-budget-plan.md`. |

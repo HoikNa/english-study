@@ -1,6 +1,28 @@
 # Incident Response
 
-Date: 2026-05-26
+Date: 2026-05-26 (Quick Links updated 2026-05-27)
+
+## Quick Links
+
+| Resource | URL |
+| --- | --- |
+| API health | `https://d6f9adjh85.execute-api.ap-northeast-2.amazonaws.com/health` |
+| API base | `https://d6f9adjh85.execute-api.ap-northeast-2.amazonaws.com` |
+| SAM stack (ap-northeast-2) | `https://ap-northeast-2.console.aws.amazon.com/cloudformation/home?region=ap-northeast-2#/stacks/stackinfo?stackId=speakready-my-backend` |
+| Lambda function | `https://ap-northeast-2.console.aws.amazon.com/lambda/home?region=ap-northeast-2#/functions` (search `speakready-my-backend`) |
+| CloudWatch logs | `https://ap-northeast-2.console.aws.amazon.com/cloudwatch/home?region=ap-northeast-2#logsV2:log-groups$3FlogGroupNameFilter$3Dspeakready-my-backend` |
+| CloudWatch alarms | `https://ap-northeast-2.console.aws.amazon.com/cloudwatch/home?region=ap-northeast-2#alarmsV2:` |
+| Secrets Manager | `https://ap-northeast-2.console.aws.amazon.com/secretsmanager/listsecrets?region=ap-northeast-2` |
+| API Gateway throttling | `https://ap-northeast-2.console.aws.amazon.com/apigateway/main/api-detail?region=ap-northeast-2` |
+| Sentry backend | `https://korea-telecom.sentry.io/projects/` (backend project) |
+| Sentry frontend | `https://korea-telecom.sentry.io/projects/python-0k/` |
+| Supabase project | `https://supabase.com/dashboard/projects` (open the SpeakReadyMY project) |
+| Azure Speech | `https://portal.azure.com/#blade/HubsExtension/BrowseResource/resourceType/Microsoft.CognitiveServices%2Faccounts` |
+| OpenAI usage | `https://platform.openai.com/usage` |
+| EAS builds | `https://expo.dev/accounts/hoik/projects/speakready-my/builds` |
+| Deployment runbook | [`docs/deployment-runbook.md`](deployment-runbook.md) |
+| Budget plan | [`docs/cost-budget-plan.md`](cost-budget-plan.md) |
+| Actual cost log | [`docs/cost-actual-log.md`](cost-actual-log.md) |
 
 ## Severity Levels
 
