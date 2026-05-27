@@ -372,11 +372,11 @@ const styles = StyleSheet.create({
   simulateBrief: { fontSize: 11, lineHeight: 15, color: C.muted, marginTop: 2 },
 
   addExpressionCard: {
-    backgroundColor: C.ink,
     borderRadius: 18,
     overflow: 'hidden',
   },
   addExpressionCardInner: {
+    backgroundColor: C.ink,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
