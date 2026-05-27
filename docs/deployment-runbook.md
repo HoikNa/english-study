@@ -155,3 +155,19 @@ npx eas-cli update --channel development --environment development --message "<s
 Use `--platform android` if iOS is not yet wired. Apply the same form for `preview` / `production` once those channels are needed. The device fetches the latest update on app cold start and applies it on the next launch (default `expo-updates` behavior).
 
 To force an immediate fetch in code, call `Updates.fetchUpdateAsync()` or wire `useUpdates` — currently not used so updates pick up silently on relaunch.
+
+### Env var trap (important)
+
+EAS **Build** reads `EXPO_PUBLIC_*` vars from the `env` block inside the `eas.json` profile and inlines them into the bundle. EAS **Update** does NOT read that block — it pulls from the EAS environment system (`eas env:create`). If an OTA-pushed bundle ends up with undefined `EXPO_PUBLIC_API_URL`, `lib/api.ts` falls back to `http://localhost:8000` and `EXPO_PUBLIC_USE_MOCK` becomes truthy (because `undefined !== 'false'` is `true`), which silently flips the app into mock mode and makes any non-mock route (e.g. `/ai/simulate/start`) fail with `Network Error`.
+
+To avoid this, every `EXPO_PUBLIC_*` value used at runtime must exist in **all three** EAS environments (development / preview / production). The 2026-05-27 fix used:
+
+```bash
+for env_name in development preview production; do
+  npx eas-cli env:create --environment $env_name --name EXPO_PUBLIC_API_URL --value 'https://d6f9adjh85.execute-api.ap-northeast-2.amazonaws.com' --visibility plaintext
+  npx eas-cli env:create --environment $env_name --name EXPO_PUBLIC_USE_MOCK --value 'false' --visibility plaintext
+  npx eas-cli env:create --environment $env_name --name EXPO_PUBLIC_SENTRY_DSN --value '<DSN>' --visibility plaintext
+done
+```
+
+Verify with `npx eas-cli env:list --environment <env>` before publishing the next update.
