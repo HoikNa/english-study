@@ -10,6 +10,7 @@ import { ChatBubble } from '@/components/simulate/ChatBubble';
 import { SuggestionPill } from '@/components/simulate/SuggestionPill';
 import { ScreenState } from '@/components/common/ScreenState';
 import { useStartSimulation, useSendSimulationMessage } from '@/hooks/useSimulation';
+import { getApiErrorMessage } from '@/lib/api';
 
 interface Message {
   id: string;
@@ -155,7 +156,7 @@ export default function SimulateScreen() {
       <SafeAreaView style={styles.safe}>
         <ScreenState
           title="시뮬레이션을 불러오지 못했어요"
-          message="백엔드 연결을 확인한 뒤 다시 시도해 주세요."
+          message={getApiErrorMessage(startError)}
           actionLabel="다시 시도"
           onAction={() => {
             startSimulation.reset();
