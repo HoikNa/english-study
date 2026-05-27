@@ -220,14 +220,16 @@ export default function HomeScreen() {
                 style={({ pressed }) => [styles.simulateRow, pressed && styles.simulateRowPressed]}
                 onPress={() => router.push(`/simulate/${s.id}` as Href)}
               >
-                <View style={styles.simulateAvatar}>
-                  <Text style={styles.simulateAvatarText}>{s.avatar}</Text>
+                <View style={styles.simulateRowInner}>
+                  <View style={styles.simulateAvatar}>
+                    <Text style={styles.simulateAvatarText}>{s.avatar}</Text>
+                  </View>
+                  <View style={styles.simulateRowInfo}>
+                    <Text style={styles.simulateName}>{s.name}</Text>
+                    <Text style={styles.simulateBrief} numberOfLines={2}>{s.brief}</Text>
+                  </View>
+                  <ChevronIcon color="rgba(245,240,230,0.62)" />
                 </View>
-                <View style={styles.simulateRowInfo}>
-                  <Text style={styles.simulateName}>{s.name}</Text>
-                  <Text style={styles.simulateBrief} numberOfLines={2}>{s.brief}</Text>
-                </View>
-                <ChevronIcon color="rgba(245,240,230,0.62)" />
               </Pressable>
             ))}
           </View>
@@ -360,13 +362,16 @@ const styles = StyleSheet.create({
 
   simulateList: { gap: 10 },
   simulateRow: {
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  simulateRowInner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     paddingVertical: 14,
     paddingHorizontal: 16,
     backgroundColor: C.ink,
-    borderRadius: 16,
   },
   simulateRowPressed: { opacity: 0.92 },
   simulateRowInfo: { flex: 1, minWidth: 0 },
