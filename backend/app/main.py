@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import initialize_database
 from app.observability import init_sentry
-from app.routers import ai, auth, expressions, ops, reports, review, sessions
+from app.routers import ai, auth, dialogues, expressions, ops, reports, review, sessions
 
 
 def create_app() -> FastAPI:
@@ -43,6 +43,7 @@ def create_app() -> FastAPI:
     app.include_router(review.router, prefix="/api/v1")
     app.include_router(reports.router, prefix="/api/v1")
     app.include_router(ops.router, prefix="/api/v1")
+    app.include_router(dialogues.router, prefix="/api/v1")
 
     return app
 

@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
 
 from app.database import connect, database_backend, ensure_database
-from app.schemas import CategoryProgress, Expression, ReviewQueue, Session, SituationItem, User
+from app.schemas import CategoryProgress, Dialogue, DialogueTurn, DialogueUpsert, Expression, ReviewQueue, Session, SituationItem, User
 
 DEFAULT_USER_ID = "dev-user"
 CATEGORY_NAMES = {
@@ -623,3 +623,125 @@ def category_progress(user_id: str = DEFAULT_USER_ID) -> list[CategoryProgress]:
         )
 
     return progress
+
+
+# ---------------- Dialogue ----------------
+
+
+def _dialogue_from_row(row, turns: list[DialogueTurn]) -> Dialogue:
+    return Dialogue(
+        id=row["id"],
+        situation_ko=row["situation_ko"],
+        situation_en=row["situation_en"],
+        category=row["category"],
+        level=row["level"],
+        speaker_a_voice=row["speaker_a_voice"],
+        speaker_b_voice=row["speaker_b_voice"],
+        speaker_a_name=row["speaker_a_name"],
+        speaker_b_name=row["speaker_b_name"],
+        turns=turns,
+    )
+
+
+def _dialogue_turn_from_row(row) -> DialogueTurn:
+    return DialogueTurn(
+        id=row["id"],
+        speaker=row["speaker"],
+        text_en=row["text_en"],
+        text_ko=row["text_ko"],
+        expression_id=row["expression_id"],
+    )
+
+
+def _load_dialogue_turns(conn, dialogue_id: str) -> list[DialogueTurn]:
+    rows = conn.execute(
+        "SELECT * FROM dialogue_turns WHERE dialogue_id = ? ORDER BY turn_index ASC",
+        (dialogue_id,),
+    ).fetchall()
+    return [_dialogue_turn_from_row(row) for row in rows]
+
+
+def list_dialogues() -> list[Dialogue]:
+    ensure_database()
+    with connect() as conn:
+        rows = conn.execute("SELECT * FROM dialogues ORDER BY id ASC").fetchall()
+        return [_dialogue_from_row(row, _load_dialogue_turns(conn, row["id"])) for row in rows]
+
+
+def get_dialogue(dialogue_id: str) -> Dialogue:
+    ensure_database()
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM dialogues WHERE id = ?", (dialogue_id,)).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Dialogue not found")
+        turns = _load_dialogue_turns(conn, dialogue_id)
+    return _dialogue_from_row(row, turns)
+
+
+def pick_today_dialogue() -> Dialogue:
+    """day-of-year rotation across all dialogues. Future: per-user recommendation."""
+    ensure_database()
+    with connect() as conn:
+        rows = conn.execute("SELECT id FROM dialogues ORDER BY id ASC").fetchall()
+    if not rows:
+        raise HTTPException(status_code=404, detail="No dialogues available")
+    today = datetime.now(timezone.utc)
+    start = datetime(today.year, 1, 1, tzinfo=timezone.utc)
+    day_of_year = (today - start).days
+    chosen_id = rows[day_of_year % len(rows)]["id"]
+    return get_dialogue(chosen_id)
+
+
+def upsert_dialogue(payload: DialogueUpsert) -> Dialogue:
+    """Insert or replace a dialogue and its turns (used by seed script)."""
+    ensure_database()
+    with connect() as conn:
+        if database_backend() == "postgresql":
+            conn.execute(
+                """
+                INSERT INTO dialogues (id, situation_ko, situation_en, category, level,
+                    speaker_a_voice, speaker_b_voice, speaker_a_name, speaker_b_name)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT (id) DO UPDATE SET
+                    situation_ko = EXCLUDED.situation_ko,
+                    situation_en = EXCLUDED.situation_en,
+                    category = EXCLUDED.category,
+                    level = EXCLUDED.level,
+                    speaker_a_voice = EXCLUDED.speaker_a_voice,
+                    speaker_b_voice = EXCLUDED.speaker_b_voice,
+                    speaker_a_name = EXCLUDED.speaker_a_name,
+                    speaker_b_name = EXCLUDED.speaker_b_name
+                """,
+                (
+                    payload.id, payload.situation_ko, payload.situation_en, payload.category,
+                    payload.level, payload.speaker_a_voice, payload.speaker_b_voice,
+                    payload.speaker_a_name, payload.speaker_b_name,
+                ),
+            )
+        else:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO dialogues (
+                    id, situation_ko, situation_en, category, level,
+                    speaker_a_voice, speaker_b_voice, speaker_a_name, speaker_b_name
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    payload.id, payload.situation_ko, payload.situation_en, payload.category,
+                    payload.level, payload.speaker_a_voice, payload.speaker_b_voice,
+                    payload.speaker_a_name, payload.speaker_b_name,
+                ),
+            )
+
+        # Replace all turns
+        conn.execute("DELETE FROM dialogue_turns WHERE dialogue_id = ?", (payload.id,))
+        for idx, turn in enumerate(payload.turns):
+            conn.execute(
+                """
+                INSERT INTO dialogue_turns (id, dialogue_id, turn_index, speaker, text_en, text_ko, expression_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (turn.id, payload.id, idx, turn.speaker, turn.text_en, turn.text_ko, turn.expression_id),
+            )
+        conn.commit()
+    return get_dialogue(payload.id)

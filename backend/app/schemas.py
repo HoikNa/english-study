@@ -222,3 +222,41 @@ class SimulationMessage(BaseModel):
 class SimulationReply(BaseModel):
     reply: str
     coach_comment_ko: str | None = None
+
+
+DialogueSpeaker = Literal["A", "B"]
+
+
+class DialogueTurn(BaseModel):
+    id: str
+    speaker: DialogueSpeaker
+    text_en: str
+    text_ko: str | None = None
+    expression_id: str | None = None
+
+
+class Dialogue(BaseModel):
+    id: str
+    situation_ko: str
+    situation_en: str | None = None
+    category: str
+    level: int
+    speaker_a_voice: str = "echo"
+    speaker_b_voice: str = "fable"
+    speaker_a_name: str | None = None
+    speaker_b_name: str | None = None
+    turns: list[DialogueTurn] = Field(default_factory=list)
+
+
+class DialogueUpsert(BaseModel):
+    """Payload for seeding/replacing a dialogue and its turns."""
+    id: str
+    situation_ko: str
+    situation_en: str | None = None
+    category: str
+    level: int
+    speaker_a_voice: str = "echo"
+    speaker_b_voice: str = "fable"
+    speaker_a_name: str | None = None
+    speaker_b_name: str | None = None
+    turns: list[DialogueTurn]

@@ -207,6 +207,36 @@ def _create_sqlite_schema(conn: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_active
             ON refresh_tokens(user_id, revoked_at, expires_at);
+
+        CREATE TABLE IF NOT EXISTS dialogues (
+            id TEXT PRIMARY KEY,
+            situation_ko TEXT NOT NULL,
+            situation_en TEXT,
+            category TEXT NOT NULL,
+            level INTEGER NOT NULL,
+            speaker_a_voice TEXT NOT NULL DEFAULT 'echo',
+            speaker_b_voice TEXT NOT NULL DEFAULT 'fable',
+            speaker_a_name TEXT,
+            speaker_b_name TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS dialogue_turns (
+            id TEXT PRIMARY KEY,
+            dialogue_id TEXT NOT NULL,
+            turn_index INTEGER NOT NULL,
+            speaker TEXT NOT NULL,
+            text_en TEXT NOT NULL,
+            text_ko TEXT,
+            expression_id TEXT,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE (dialogue_id, turn_index),
+            FOREIGN KEY (dialogue_id) REFERENCES dialogues(id) ON DELETE CASCADE,
+            FOREIGN KEY (expression_id) REFERENCES expressions(id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_dialogue_turns_dialogue
+            ON dialogue_turns(dialogue_id, turn_index);
         """
     )
 
@@ -292,6 +322,34 @@ def _create_postgres_schema(conn: PostgresConnection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_active
             ON refresh_tokens(user_id, revoked_at, expires_at);
+
+        CREATE TABLE IF NOT EXISTS dialogues (
+            id TEXT PRIMARY KEY,
+            situation_ko TEXT NOT NULL,
+            situation_en TEXT,
+            category TEXT NOT NULL,
+            level INTEGER NOT NULL,
+            speaker_a_voice TEXT NOT NULL DEFAULT 'echo',
+            speaker_b_voice TEXT NOT NULL DEFAULT 'fable',
+            speaker_a_name TEXT,
+            speaker_b_name TEXT,
+            created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP::TEXT)
+        );
+
+        CREATE TABLE IF NOT EXISTS dialogue_turns (
+            id TEXT PRIMARY KEY,
+            dialogue_id TEXT NOT NULL REFERENCES dialogues(id) ON DELETE CASCADE,
+            turn_index INTEGER NOT NULL,
+            speaker TEXT NOT NULL,
+            text_en TEXT NOT NULL,
+            text_ko TEXT,
+            expression_id TEXT REFERENCES expressions(id),
+            created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP::TEXT),
+            UNIQUE (dialogue_id, turn_index)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_dialogue_turns_dialogue
+            ON dialogue_turns(dialogue_id, turn_index);
         """
     )
 
