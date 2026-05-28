@@ -129,47 +129,42 @@ function DialogueBubble({ turn, speakerName, showKo, playing, onPress, onShadow 
   const isA = turn.speaker === 'A';
   return (
     <View style={[styles.bubbleRow, isA ? styles.bubbleRowLeft : styles.bubbleRowRight]}>
-      {isA && (
+      {isA ? (
         <View style={[styles.avatar, styles.avatarA]}>
           <Text style={styles.avatarTextA}>{speakerName?.[0]?.toUpperCase() ?? 'A'}</Text>
         </View>
-      )}
+      ) : null}
       <View style={[styles.bubbleCol, isA ? styles.bubbleColLeft : styles.bubbleColRight]}>
         <Text style={[styles.speakerName, !isA && styles.speakerNameRight]}>
           {speakerName ?? (isA ? 'A' : 'B')}
         </Text>
-        <Pressable
-          onPress={onPress}
-          style={({ pressed }) => [
-            styles.bubble,
-            isA ? styles.bubbleA : styles.bubbleB,
-            playing && styles.bubbleActive,
-            pressed && { opacity: 0.85 },
-          ]}
-        >
-          <Text style={[styles.bubbleEn, !isA && styles.bubbleEnRight]}>{turn.textEn}</Text>
-          {showKo && turn.textKo ? (
-            <Text style={[styles.bubbleKo, !isA && styles.bubbleKoRight]}>{turn.textKo}</Text>
-          ) : null}
-        </Pressable>
-        {onShadow ? (
-          <Pressable
-            onPress={onShadow}
-            style={({ pressed }) => [
-              styles.shadowPill,
-              isA ? styles.shadowPillLeft : styles.shadowPillRight,
-              pressed && { opacity: 0.85 },
+        <Pressable onPress={onPress} hitSlop={4}>
+          <View
+            style={[
+              styles.bubbleInner,
+              isA ? styles.bubbleInnerA : styles.bubbleInnerB,
+              playing && styles.bubbleInnerActive,
             ]}
           >
-            <Text style={styles.shadowPillText}>🎤  이 표현 쉐도잉  →</Text>
+            <Text style={[styles.bubbleEn, !isA && styles.bubbleEnRight]}>{turn.textEn}</Text>
+            {showKo && turn.textKo ? (
+              <Text style={[styles.bubbleKo, !isA && styles.bubbleKoRight]}>{turn.textKo}</Text>
+            ) : null}
+          </View>
+        </Pressable>
+        {onShadow ? (
+          <Pressable onPress={onShadow} hitSlop={6} style={isA ? styles.shadowPillLeft : styles.shadowPillRight}>
+            <View style={styles.shadowPillInner}>
+              <Text style={styles.shadowPillText}>🎤  이 표현 쉐도잉  →</Text>
+            </View>
           </Pressable>
         ) : null}
       </View>
-      {!isA && (
+      {!isA ? (
         <View style={[styles.avatar, styles.avatarB]}>
           <Text style={styles.avatarTextB}>{speakerName?.[0]?.toUpperCase() ?? 'B'}</Text>
         </View>
-      )}
+      ) : null}
     </View>
   );
 }
@@ -231,39 +226,42 @@ const styles = StyleSheet.create({
   speakerName: { fontSize: 10, fontWeight: '700', color: C.muted, marginLeft: 2 },
   speakerNameRight: { marginLeft: 0, marginRight: 2 },
 
-  bubble: {
+  // Bubble inner (BG/border는 inner View에서 처리 — Pressable + function-style + Android 미렌더 회피)
+  bubbleInner: {
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
   },
-  bubbleA: {
+  bubbleInnerA: {
     backgroundColor: C.card,
     borderTopLeftRadius: 4,
-    borderWidth: 0.5,
     borderColor: C.line,
+    borderWidth: 1,
   },
-  bubbleB: {
+  bubbleInnerB: {
     backgroundColor: C.ink,
     borderTopRightRadius: 4,
   },
-  bubbleActive: {
-    borderWidth: 1.5,
+  bubbleInnerActive: {
     borderColor: C.accent,
+    borderWidth: 2,
   },
   bubbleEn: { fontSize: 15, lineHeight: 21, fontWeight: '600', color: C.ink },
   bubbleEnRight: { color: C.paper },
   bubbleKo: { fontSize: 12, lineHeight: 17, color: C.muted, marginTop: 6 },
   bubbleKoRight: { color: 'rgba(245,240,230,0.62)' },
 
-  shadowPill: {
-    marginTop: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+  // Shadow pill — BG는 inner View로
+  shadowPillLeft: { alignSelf: 'flex-start', marginTop: 6 },
+  shadowPillRight: { alignSelf: 'flex-end', marginTop: 6 },
+  shadowPillInner: {
+    paddingVertical: 9,
+    paddingHorizontal: 14,
     borderRadius: 999,
     backgroundColor: C.accent,
   },
-  shadowPillLeft: { alignSelf: 'flex-start' },
-  shadowPillRight: { alignSelf: 'flex-end' },
   shadowPillText: { fontSize: 12, fontWeight: '800', color: '#fff' },
 
   controls: {
