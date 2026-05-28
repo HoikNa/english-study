@@ -3,15 +3,16 @@ import { Redirect, Tabs } from 'expo-router';
 import { ActivityIndicator, View, StyleSheet, Platform } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { HomeIcon, GridIcon, ChartIcon } from '@/components/common/Icons';
+import { HomeIcon, GridIcon, StackIcon, ChartIcon } from '@/components/common/Icons';
 import { C } from '@/lib/theme';
 import { useAuthStore } from '@/stores/auth.store';
 
-type TabId = 'index' | 'categories' | 'progress';
+type TabId = 'index' | 'categories' | 'blocks' | 'progress';
 
 const TABS: { id: TabId; label: string; Icon: React.FC<{ color: string; size?: number }> }[] = [
   { id: 'index', label: '오늘', Icon: HomeIcon },
   { id: 'categories', label: '학습', Icon: GridIcon },
+  { id: 'blocks', label: '블록', Icon: StackIcon },
   { id: 'progress', label: '진도', Icon: ChartIcon },
 ];
 

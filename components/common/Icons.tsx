@@ -27,6 +27,16 @@ export function GridIcon({ color = '#000', size = 22 }: IconProps) {
   );
 }
 
+export function StackIcon({ color = '#000', size = 22 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 22 22" fill="none">
+      <Rect x="3" y="3" width="16" height="4" rx="1.5" stroke={color} strokeWidth="1.6" />
+      <Rect x="3" y="9" width="16" height="4" rx="1.5" stroke={color} strokeWidth="1.6" />
+      <Rect x="3" y="15" width="16" height="4" rx="1.5" stroke={color} strokeWidth="1.6" />
+    </Svg>
+  );
+}
+
 export function ReviewIcon({ color = '#000', size = 22 }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 22 22" fill="none">

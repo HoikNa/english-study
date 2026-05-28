@@ -89,3 +89,28 @@ export interface Dialogue {
   speakerBName?: string;
   turns: DialogueTurn[];
 }
+
+export type SoundBlockCategory = 'start' | 'core' | 'detail' | 'advanced';
+export type SoundBlockSubcategory = 'be-verb' | 'i-verb' | 'modal' | 'perfect-conditional';
+
+export interface SoundBlockExample {
+  en: string;
+  ko: string;
+}
+
+export interface SoundBlock {
+  id: string;
+  category: SoundBlockCategory;
+  /** 시작 블록만 sub-grouping 사용 (be동사 / I+동사 / 조동사 / 완료·존재·가정) */
+  subcategory?: SoundBlockSubcategory;
+  /** 카테고리 안에서 표시 순서 */
+  order: number;
+  /** 블록 이름 (예: "be동사 블록") */
+  name: string;
+  /** "part 1~4" 같은 보조 라벨 (선택) */
+  partsLabel?: string;
+  /** 한국어 패턴 설명 / 공식 */
+  pattern: string;
+  /** 학습 예문 — 보통 3~4개 */
+  examples: SoundBlockExample[];
+}

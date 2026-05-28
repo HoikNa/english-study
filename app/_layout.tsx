@@ -81,6 +81,7 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="shadowing/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="dialogue/[id]" options={{ presentation: 'card' }} />
+        <Stack.Screen name="block/[id]" options={{ presentation: 'card' }} />
         <Stack.Screen name="simulate/[scenario]" options={{ presentation: 'card' }} />
         <Stack.Screen name="report/weekly" options={{ presentation: 'card' }} />
         <Stack.Screen name="review" options={{ presentation: 'card' }} />
