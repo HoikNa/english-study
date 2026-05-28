@@ -33,7 +33,12 @@ export default function DialogueScreen() {
       if (!turn) return;
       const voice = turn.speaker === 'A' ? dialogue.speakerAVoice : dialogue.speakerBVoice;
       setCurrentIndex(idx);
-      await tts.playText(turn.textEn, undefined, voice);
+      if (turn.audioUrl) {
+        // 사전 캐싱된 URL 직접 재생 (TTS API 라운드트립 회피)
+        await tts.playUrl(turn.audioUrl);
+      } else {
+        await tts.playText(turn.textEn, undefined, voice);
+      }
     },
     [dialogue, tts]
   );

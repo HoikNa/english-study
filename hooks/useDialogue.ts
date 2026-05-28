@@ -9,6 +9,7 @@ interface ApiDialogueTurn {
   text_en: string;
   text_ko?: string | null;
   expression_id?: string | null;
+  audio_url?: string | null;
 }
 
 interface ApiDialogue {
@@ -31,6 +32,7 @@ function mapTurn(t: ApiDialogueTurn): DialogueTurn {
     textEn: t.text_en,
     textKo: t.text_ko ?? undefined,
     expressionId: t.expression_id ?? undefined,
+    audioUrl: t.audio_url ?? undefined,
   };
 }
 

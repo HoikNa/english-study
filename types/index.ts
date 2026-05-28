@@ -72,6 +72,8 @@ export interface DialogueTurn {
   textKo?: string;
   /** 이 턴이 학습 대상 표현인 경우, 해당 Expression id 참조 */
   expressionId?: string;
+  /** 사전 캐싱된 TTS audio URL (Supabase Storage). 있으면 /ai/tts/generate 안 거치고 직접 재생. */
+  audioUrl?: string;
 }
 
 export interface Dialogue {

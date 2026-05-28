@@ -5,25 +5,26 @@ from urllib.parse import quote
 from app.config import get_settings
 
 
-def get_tts_url(text: str, speed: float = 1.0) -> str:
+def get_tts_url(text: str, speed: float = 1.0, voice: str | None = None) -> str:
     settings = get_settings()
+    effective_voice = voice or settings.openai_tts_voice
 
     if not settings.openai_api_key:
         encoded = quote(text[:80])
-        return f"https://example.com/mock-tts/{encoded}?speed={speed}"
+        return f"https://example.com/mock-tts/{encoded}?voice={effective_voice}&speed={speed}"
 
-    cache_key = _cache_key(text, speed)
+    cache_key = _cache_key(text, speed, effective_voice)
 
     cached_url = _check_supabase_cache(cache_key, settings)
     if cached_url:
         return cached_url
 
-    audio_bytes = _generate_tts(text, speed, settings)
+    audio_bytes = _generate_tts(text, speed, settings, effective_voice)
     return _upload_to_supabase(cache_key, audio_bytes, settings)
 
 
-def _cache_key(text: str, speed: float) -> str:
-    raw = f"{text}|{speed:.1f}"
+def _cache_key(text: str, speed: float, voice: str) -> str:
+    raw = f"{voice}|{text}|{speed:.1f}"
     return hashlib.sha256(raw.encode()).hexdigest()[:32] + ".mp3"
 
 
@@ -44,12 +45,12 @@ def _check_supabase_cache(cache_key: str, settings) -> str | None:
     return None
 
 
-def _generate_tts(text: str, speed: float, settings) -> bytes:
+def _generate_tts(text: str, speed: float, settings, voice: str) -> bytes:
     from openai import OpenAI
     client = OpenAI(api_key=settings.openai_api_key)
     response = client.audio.speech.create(
         model="tts-1",
-        voice=settings.openai_tts_voice,
+        voice=voice,
         input=text,
         speed=speed,
     )

@@ -233,6 +233,7 @@ class DialogueTurn(BaseModel):
     text_en: str
     text_ko: str | None = None
     expression_id: str | None = None
+    audio_url: str | None = None
 
 
 class Dialogue(BaseModel):

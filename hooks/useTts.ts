@@ -19,10 +19,56 @@ export function useTts() {
     setIsPlaying(false);
   }, [setIsPlaying]);
 
+  const playUri = useCallback(
+    async (uri: string, speed: number): Promise<void> => {
+      clearPlayer();
+      await setAudioModeAsync({
+        allowsRecording: false,
+        playsInSilentMode: true,
+        interruptionMode: 'doNotMix',
+      });
+      const player = createAudioPlayer(uri);
+      player.setPlaybackRate(speed);
+      player.volume = 1;
+      playerRef.current = player;
+      setIsPlaying(true);
+      player.play();
+
+      return new Promise<void>((resolve) => {
+        statusTimerRef.current = setInterval(() => {
+          const currentPlayer = playerRef.current;
+          if (!currentPlayer) {
+            if (statusTimerRef.current) clearInterval(statusTimerRef.current);
+            statusTimerRef.current = null;
+            resolve();
+            return;
+          }
+          if (!currentPlayer.playing && currentPlayer.currentTime > 0) {
+            clearPlayer();
+            resolve();
+          }
+        }, 250);
+      });
+    },
+    [setIsPlaying, clearPlayer]
+  );
+
+  const playUrl = useCallback(
+    async (audioUrl: string, speed: number = playbackSpeed) => {
+      if (USE_MOCK) {
+        setIsPlaying(true);
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        setIsPlaying(false);
+        return;
+      }
+      await playUri(audioUrl, speed);
+    },
+    [playbackSpeed, setIsPlaying, playUri]
+  );
+
   const playText = useCallback(
     async (text: string, speed = playbackSpeed, voice: string = 'nova') => {
       if (USE_MOCK) {
-        // In mock mode, just simulate playback delay
         setIsPlaying(true);
         await new Promise((resolve) => setTimeout(resolve, 1500));
         setIsPlaying(false);
@@ -48,38 +94,9 @@ export function useTts() {
       }
 
       if (!uri) return;
-
-      clearPlayer();
-      await setAudioModeAsync({
-        allowsRecording: false,
-        playsInSilentMode: true,
-        interruptionMode: 'doNotMix',
-      });
-      const player = createAudioPlayer(uri);
-      player.setPlaybackRate(speed);
-      player.volume = 1;
-      playerRef.current = player;
-      setIsPlaying(true);
-      player.play();
-
-      // 재생 완료까지 대기 (await 시 종료 시점에 resolve)
-      return new Promise<void>((resolve) => {
-        statusTimerRef.current = setInterval(() => {
-          const currentPlayer = playerRef.current;
-          if (!currentPlayer) {
-            if (statusTimerRef.current) clearInterval(statusTimerRef.current);
-            statusTimerRef.current = null;
-            resolve();
-            return;
-          }
-          if (!currentPlayer.playing && currentPlayer.currentTime > 0) {
-            clearPlayer();
-            resolve();
-          }
-        }, 250);
-      });
+      await playUri(uri, speed);
     },
-    [playbackSpeed, ttsCache, cacheAudio, setIsPlaying, clearPlayer]
+    [playbackSpeed, ttsCache, cacheAudio, setIsPlaying, playUri]
   );
 
   const stop = useCallback(() => {
@@ -88,5 +105,5 @@ export function useTts() {
 
   useEffect(() => clearPlayer, [clearPlayer]);
 
-  return { playText, stop, loading, isPlaying };
+  return { playText, playUrl, stop, loading, isPlaying };
 }

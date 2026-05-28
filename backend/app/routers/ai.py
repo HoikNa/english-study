@@ -57,7 +57,7 @@ def feedback(payload: FeedbackRequest) -> FeedbackResult:
 
 @router.post("/tts/generate")
 def generate_tts(payload: TtsRequest) -> dict[str, str]:
-    return {"audio_url": get_tts_url(payload.text, payload.speed)}
+    return {"audio_url": get_tts_url(payload.text, payload.speed, payload.voice)}
 
 
 @router.post("/custom-expression", response_model=CustomExpressionResult)

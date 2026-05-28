@@ -644,12 +644,18 @@ def _dialogue_from_row(row, turns: list[DialogueTurn]) -> Dialogue:
 
 
 def _dialogue_turn_from_row(row) -> DialogueTurn:
+    audio_url = None
+    try:
+        audio_url = row["audio_url"]
+    except (KeyError, IndexError):
+        pass
     return DialogueTurn(
         id=row["id"],
         speaker=row["speaker"],
         text_en=row["text_en"],
         text_ko=row["text_ko"],
         expression_id=row["expression_id"],
+        audio_url=audio_url,
     )
 
 

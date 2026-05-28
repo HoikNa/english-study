@@ -229,6 +229,7 @@ def _create_sqlite_schema(conn: sqlite3.Connection) -> None:
             text_en TEXT NOT NULL,
             text_ko TEXT,
             expression_id TEXT,
+            audio_url TEXT,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             UNIQUE (dialogue_id, turn_index),
             FOREIGN KEY (dialogue_id) REFERENCES dialogues(id) ON DELETE CASCADE,
@@ -239,6 +240,11 @@ def _create_sqlite_schema(conn: sqlite3.Connection) -> None:
             ON dialogue_turns(dialogue_id, turn_index);
         """
     )
+    # Defensive: add audio_url to pre-existing tables (no-op if already present)
+    try:
+        conn.execute("ALTER TABLE dialogue_turns ADD COLUMN audio_url TEXT")
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def _create_postgres_schema(conn: PostgresConnection) -> None:
@@ -343,13 +349,15 @@ def _create_postgres_schema(conn: PostgresConnection) -> None:
             speaker TEXT NOT NULL,
             text_en TEXT NOT NULL,
             text_ko TEXT,
-            expression_id TEXT REFERENCES expressions(id),
+            expression_id TEXT,
+            audio_url TEXT,
             created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP::TEXT),
             UNIQUE (dialogue_id, turn_index)
         );
 
         CREATE INDEX IF NOT EXISTS idx_dialogue_turns_dialogue
             ON dialogue_turns(dialogue_id, turn_index);
+        ALTER TABLE dialogue_turns ADD COLUMN IF NOT EXISTS audio_url TEXT;
         """
     )
 
