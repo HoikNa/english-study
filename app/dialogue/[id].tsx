@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  View, Text, ScrollView, Pressable, StyleSheet, SafeAreaView,
+  View, Text, ScrollView, Pressable, StyleSheet, SafeAreaView, Platform,
 } from 'react-native';
 import { useLocalSearchParams, router, type Href } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, spacing } from '@/lib/theme';
 import { ChevronIcon } from '@/components/common/Icons';
 import { mockDialogues } from '@/lib/mocks/dialogues.mock';
@@ -13,6 +14,8 @@ export default function DialogueScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const dialogue = mockDialogues.find((d) => d.id === id) ?? mockDialogues[0];
   const tts = useTts();
+  const insets = useSafeAreaInsets();
+  const bottomClearance = Platform.OS === 'android' ? Math.max(insets.bottom, 24) : Math.max(insets.bottom, 12);
 
   const [currentIndex, setCurrentIndex] = useState<number | null>(null);
   const [showKo, setShowKo] = useState(true);
@@ -81,7 +84,7 @@ export default function DialogueScreen() {
       <ScrollView
         ref={scrollRef}
         style={styles.body}
-        contentContainerStyle={styles.bodyContent}
+        contentContainerStyle={[styles.bodyContent, { paddingBottom: 140 + bottomClearance }]}
         showsVerticalScrollIndicator={false}
       >
         {dialogue.turns.map((turn, idx) => (
@@ -101,7 +104,7 @@ export default function DialogueScreen() {
         ))}
       </ScrollView>
 
-      <View style={styles.controls}>
+      <View style={[styles.controls, { paddingBottom: 12 + bottomClearance }]}>
         {autoPlaying ? (
           <Pressable onPress={stopAll} style={[styles.controlBtn, styles.controlBtnPause]}>
             <Text style={styles.controlPauseText}>■ 정지</Text>
@@ -195,7 +198,6 @@ const styles = StyleSheet.create({
   body: { flex: 1 },
   bodyContent: {
     padding: spacing.screenH,
-    paddingBottom: 140,
     gap: 14,
   },
 
@@ -269,7 +271,6 @@ const styles = StyleSheet.create({
     left: 0, right: 0, bottom: 0,
     paddingHorizontal: spacing.screenH,
     paddingTop: 12,
-    paddingBottom: 24,
     backgroundColor: C.paper,
     borderTopWidth: 0.5,
     borderTopColor: C.line,
