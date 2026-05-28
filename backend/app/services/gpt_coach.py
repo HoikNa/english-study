@@ -3,7 +3,7 @@ import json
 from fastapi import HTTPException
 
 from app.config import get_settings
-from app.schemas import CustomExpressionResult, FeedbackAlternative, FeedbackResult, SimulationReply
+from app.schemas import CustomExpressionResult, FeedbackAlternative, FeedbackResult, SimulationReply, ToneVariant
 
 _USER_CONTEXT = (
     "사용자: 45세 한국인, 국내 통신사 IT서비스개발기획자, 토익 850, 회화 중하, "
@@ -27,9 +27,17 @@ JSON만 출력:
 _CUSTOM_SYSTEM = f"""
 {_USER_CONTEXT}
 한국어 문장을 IT 비즈니스 영어 표현으로 변환합니다.
-반드시 아래 JSON 형식으로만 반환하세요:
+서로 다른 3가지 톤(Direct / Diplomatic / Concise)으로 각각 표현을 만들어 주세요.
+- Direct: 협상력 있고 단호한 톤
+- Diplomatic: 관계를 유지하면서 우려를 전달하는 톤
+- Concise: 핵심만 간결하게 전달하는 톤
+반드시 아래 JSON 형식으로만 반환하세요. tones 배열은 정확히 3개, id는 direct/diplomatic/concise 순서:
 {{
-  "text_en": "영어 표현",
+  "tones": [
+    {{"id": "direct", "label": "Direct", "label_ko": "직접적", "text_en": "영어 표현 1", "note_ko": "이 톤의 특징 15자 이내"}},
+    {{"id": "diplomatic", "label": "Diplomatic", "label_ko": "외교적", "text_en": "영어 표현 2", "note_ko": "이 톤의 특징 15자 이내"}},
+    {{"id": "concise", "label": "Concise", "label_ko": "간결한", "text_en": "영어 표현 3", "note_ko": "이 톤의 특징 15자 이내"}}
+  ],
   "situation_desc_ko": "사용 상황 설명 2문장 (한국어)",
   "level": 1~3 사이 정수,
   "category": "life" | "business" | "it" | "custom"
@@ -123,10 +131,10 @@ def convert_custom_expression(text_ko: str, context: str | None) -> CustomExpres
         user_msg += f"\n상황 힌트: {context}"
 
     try:
-        raw = _chat(_CUSTOM_SYSTEM, user_msg, temperature=0.3)
+        raw = _chat(_CUSTOM_SYSTEM, user_msg, temperature=0.3, max_tokens=600)
         data = json.loads(raw)
         return CustomExpressionResult(
-            text_en=data["text_en"],
+            tones=[ToneVariant(**tone) for tone in data["tones"]],
             situation_desc_ko=data["situation_desc_ko"],
             level=int(data["level"]),
             category=data["category"],
@@ -171,8 +179,30 @@ def _mock_feedback(target_sentence: str) -> FeedbackResult:
 
 def _mock_custom(text_ko: str) -> CustomExpressionResult:
     return CustomExpressionResult(
-        text_en="I'd like to revisit the timeline because our current capacity is limited.",
-        situation_desc_ko="업무 일정과 리소스 제약을 정중하게 설명하는 상황입니다. 미팅에서 일정 조율이 필요할 때 사용합니다.",
+        tones=[
+            ToneVariant(
+                id="direct",
+                label="Direct",
+                label_ko="직접적",
+                text_en="I need to push back on this timeline — it's not realistic given our current capacity.",
+                note_ko="협상력 있고 단호한 톤",
+            ),
+            ToneVariant(
+                id="diplomatic",
+                label="Diplomatic",
+                label_ko="외교적",
+                text_en="I'd like to revisit the timeline — I have some concerns about our capacity to deliver by then.",
+                note_ko="관계를 유지하면서 우려를 전달",
+            ),
+            ToneVariant(
+                id="concise",
+                label="Concise",
+                label_ko="간결한",
+                text_en="The timeline needs adjustment — we're at capacity.",
+                note_ko="바쁜 미팅에서 빠르게 핵심 전달",
+            ),
+        ],
+        situation_desc_ko="업무 일정과 리소스 제약을 설명하는 상황입니다. 미팅에서 일정 조율이 필요할 때 사용합니다.",
         level=3,
         category="business",
     )

@@ -41,6 +41,8 @@ export default function CustomAddScreen() {
   const [koreanInput, setKoreanInput] = useState('');
   const [contextInput, setContextInput] = useState('');
   const [tones, setTones] = useState<ToneOption[] | null>(null);
+  const [situationDescKo, setSituationDescKo] = useState<string | null>(null);
+  const [conversionLevel, setConversionLevel] = useState<number>(3);
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
@@ -58,20 +60,29 @@ export default function CustomAddScreen() {
       if (USE_MOCK) {
         await new Promise((r) => setTimeout(r, 1200));
         setTones(MOCK_TONES);
+        setSituationDescKo('업무 일정과 리소스 제약을 설명하는 상황입니다. 미팅에서 일정 조율이 필요할 때 사용합니다.');
+        setConversionLevel(3);
       } else {
-        const res = await apiClient.post<{ text_en: string; situation_desc_ko: string }>('/ai/custom-expression', {
+        type ApiTone = { id: ToneOption['id']; label: string; label_ko: string; text_en: string; note_ko: string };
+        const res = await apiClient.post<{
+          tones: ApiTone[];
+          situation_desc_ko: string;
+          level: number;
+        }>('/ai/custom-expression', {
           text_ko: koreanInput,
           context: contextInput,
         });
-        setTones([
-          {
-            id: 'direct',
-            label: 'Generated',
-            labelKo: 'AI 변환',
-            text: res.data.text_en,
-            note: res.data.situation_desc_ko,
-          },
-        ]);
+        setTones(
+          res.data.tones.map((t) => ({
+            id: t.id,
+            label: t.label,
+            labelKo: t.label_ko,
+            text: t.text_en,
+            note: t.note_ko,
+          }))
+        );
+        setSituationDescKo(res.data.situation_desc_ko);
+        setConversionLevel(res.data.level);
       }
     } catch {
       setError('AI 변환에 실패했어요. API 설정과 네트워크를 확인해 주세요.');
@@ -94,8 +105,8 @@ export default function CustomAddScreen() {
           text_ko: koreanInput.trim(),
           context: contextInput.trim() || undefined,
           text_en: selectedTone?.text,
-          situation_desc_ko: selectedTone?.note,
-          level: 3,
+          situation_desc_ko: situationDescKo ?? selectedTone?.note,
+          level: conversionLevel,
           category: 'custom',
         });
         queryClient.invalidateQueries({ queryKey: learningKeys.expressions({}) });

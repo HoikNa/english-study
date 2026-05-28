@@ -54,7 +54,7 @@ def create_custom_expression(
         level = payload.level or 3
     else:
         converted = gpt_coach.convert_custom_expression(payload.text_ko, payload.context)
-        text_en = converted.text_en
+        text_en = converted.tones[0].text_en
         situation_ko = converted.situation_desc_ko
         level = converted.level
 

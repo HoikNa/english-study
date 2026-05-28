@@ -92,8 +92,16 @@ class CustomExpressionRequest(BaseModel):
     category: Category | None = None
 
 
-class CustomExpressionResult(BaseModel):
+class ToneVariant(BaseModel):
+    id: Literal["direct", "diplomatic", "concise"]
+    label: str
+    label_ko: str
     text_en: str
+    note_ko: str
+
+
+class CustomExpressionResult(BaseModel):
+    tones: list[ToneVariant]
     situation_desc_ko: str
     level: int = Field(ge=1, le=3)
     category: Category

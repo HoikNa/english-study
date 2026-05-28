@@ -10,6 +10,7 @@ from app.schemas import (
     CustomExpressionResult,
     ReviewEnqueueRequest,
     Session,
+    ToneVariant,
 )
 from app.services import gpt_coach, repository
 
@@ -27,7 +28,29 @@ def test_custom_expression_create_and_soft_delete(monkeypatch, tmp_path):
         gpt_coach,
         "convert_custom_expression",
         lambda text_ko, context: CustomExpressionResult(
-            text_en="The timeline needs adjustment.",
+            tones=[
+                ToneVariant(
+                    id="direct",
+                    label="Direct",
+                    label_ko="직접적",
+                    text_en="The timeline needs adjustment.",
+                    note_ko="단호한 톤",
+                ),
+                ToneVariant(
+                    id="diplomatic",
+                    label="Diplomatic",
+                    label_ko="외교적",
+                    text_en="I'd like to revisit the timeline.",
+                    note_ko="정중한 톤",
+                ),
+                ToneVariant(
+                    id="concise",
+                    label="Concise",
+                    label_ko="간결한",
+                    text_en="Timeline needs to change.",
+                    note_ko="간결한 톤",
+                ),
+            ],
             situation_desc_ko="일정 조정이 필요한 상황입니다.",
             level=2,
             category="business",
