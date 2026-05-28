@@ -225,6 +225,7 @@ class SimulationStartResult(BaseModel):
 class SimulationMessage(BaseModel):
     message: str
     history: list[dict] = Field(default_factory=list)
+    scenario_code: str | None = None
 
 
 class SimulationReply(BaseModel):

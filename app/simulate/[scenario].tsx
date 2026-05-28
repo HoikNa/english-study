@@ -134,6 +134,7 @@ export default function SimulateScreen() {
         simulationId,
         message: t,
         history: [...historyPayload, { who: 'me', text: t, time: myMsg.time, coachNote: null }],
+        scenarioCode: scenario,
       });
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),

@@ -44,16 +44,42 @@ _CUSTOM_SYSTEM = f"""
 }}
 """.strip()
 
-_SIMULATION_SYSTEM = f"""
+_SIMULATION_SCENARIOS: dict[str, dict[str, str]] = {
+    "iot-meeting": {
+        "persona": "미국인 CTO Marcus",
+        "context_ko": "IoT 플랫폼 통합 첫 미팅. 사용자 회사의 기술 역량, 레이턴시, 아키텍처 강점을 검증한다.",
+        "first_message": "Thanks for joining. To get started, could you walk me through your IoT platform's architecture and where your latency advantage actually comes from?",
+    },
+    "requirements": {
+        "persona": "미국인 PM Sarah",
+        "context_ko": "요구사항 협의 미팅. 수락 조건을 명확히 하고 이해관계자 기대치를 조율한다.",
+        "first_message": "Hi — appreciate you making time. Before we dive in, can you confirm which acceptance criteria are still open from your side?",
+    },
+}
+
+_DEFAULT_SCENARIO_CODE = "iot-meeting"
+
+
+def _scenario(scenario_code: str | None) -> dict[str, str]:
+    return _SIMULATION_SCENARIOS.get(scenario_code or "", _SIMULATION_SCENARIOS[_DEFAULT_SCENARIO_CODE])
+
+
+def get_scenario_first_message(scenario_code: str | None) -> str:
+    return _scenario(scenario_code)["first_message"]
+
+
+def _build_simulation_system(scenario_code: str | None) -> str:
+    sc = _scenario(scenario_code)
+    return f"""
 {_USER_CONTEXT}
-당신은 미국인 CTO입니다. IT 비즈니스 미팅 롤플레이를 진행합니다.
+당신은 {sc['persona']}입니다. {sc['context_ko']}
 규칙:
 - 3문장 이내로 응답
 - 브로큰 잉글리쉬나 어색한 표현 발견 시 [코치: 교정 코멘트] 형식으로 삽입
 - 반드시 질문으로 마무리
 반드시 아래 JSON 형식으로만 반환하세요:
 {{
-  "reply": "CTO 응답 (영어, 3문장 이내)",
+  "reply": "응답 (영어, 3문장 이내)",
   "coach_comment_ko": "교정 코멘트 (한국어, 없으면 null)"
 }}
 """.strip()
@@ -143,7 +169,11 @@ def convert_custom_expression(text_ko: str, context: str | None) -> CustomExpres
         raise HTTPException(status_code=502, detail=f"GPT 응답 파싱 실패: {e}")
 
 
-def create_simulation_reply(message: str, history: list[dict] | None = None) -> SimulationReply:
+def create_simulation_reply(
+    message: str,
+    history: list[dict] | None = None,
+    scenario_code: str | None = None,
+) -> SimulationReply:
     settings = get_settings()
     if not settings.openai_api_key:
         return _mock_simulation()
@@ -152,7 +182,7 @@ def create_simulation_reply(message: str, history: list[dict] | None = None) -> 
     user_msg = f"대화 이력: {history_str}\n사용자 발화: {message}"
 
     try:
-        raw = _chat(_SIMULATION_SYSTEM, user_msg, temperature=0.8)
+        raw = _chat(_build_simulation_system(scenario_code), user_msg, temperature=0.8)
         data = json.loads(raw)
         return SimulationReply(
             reply=data["reply"],

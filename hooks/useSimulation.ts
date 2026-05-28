@@ -42,14 +42,17 @@ export function useSendSimulationMessage() {
       simulationId,
       message,
       history,
+      scenarioCode,
     }: {
       simulationId: string;
       message: string;
       history: SimulationHistoryItem[];
+      scenarioCode: string;
     }) => {
       const res = await apiClient.post<{ reply: string; coach_comment_ko?: string | null }>(`/ai/simulate/${simulationId}/message`, {
         message,
         history,
+        scenario_code: scenarioCode,
       });
       return {
         reply: res.data.reply,

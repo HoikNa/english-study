@@ -69,10 +69,14 @@ def custom_expression(payload: CustomExpressionRequest) -> CustomExpressionResul
 def simulate_start(payload: SimulationStart) -> SimulationStartResult:
     return SimulationStartResult(
         simulation_id=str(uuid4()),
-        first_message="Thanks for joining. Could you briefly introduce your platform and the problem it solves?",
+        first_message=gpt_coach.get_scenario_first_message(payload.scenario_code),
     )
 
 
 @router.post("/simulate/{simulation_id}/message", response_model=SimulationReply)
 def simulate_message(simulation_id: str, payload: SimulationMessage) -> SimulationReply:
-    return gpt_coach.create_simulation_reply(payload.message, payload.history)
+    return gpt_coach.create_simulation_reply(
+        payload.message,
+        payload.history,
+        scenario_code=payload.scenario_code,
+    )
