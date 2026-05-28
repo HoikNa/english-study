@@ -63,6 +63,18 @@ export function useDialogueToday() {
   });
 }
 
+export function useDialogues() {
+  return useQuery<Dialogue[]>({
+    queryKey: ['dialogues', 'all'],
+    queryFn: async () => {
+      if (USE_MOCK) return mockDialogues;
+      const res = await apiClient.get<ApiDialogue[]>('/dialogues');
+      return res.data.map(mapDialogue);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
 export function useDialogue(id: string | undefined) {
   return useQuery<Dialogue>({
     queryKey: ['dialogue', id],

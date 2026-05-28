@@ -1,133 +1,115 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, Pressable, StyleSheet, SafeAreaView,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, spacing } from '@/lib/theme';
-import { SectionLabel } from '@/components/common/SectionLabel';
 import { ScreenState } from '@/components/common/ScreenState';
-import { Chip } from '@/components/common/Chip';
 import { ChevronIcon } from '@/components/common/Icons';
-import { ProgressLine } from '@/components/common/ProgressLine';
 import { CategoryTab } from '@/components/categories/CategoryTab';
-import { mockExpressions, mockSituations } from '@/lib/mocks/expressions.mock';
-import { useExpressions, useSituations } from '@/hooks/useLearningData';
-import { USE_MOCK } from '@/lib/api';
-import type { Category } from '@/types';
+import { useDialogues } from '@/hooks/useDialogue';
+import { getApiErrorMessage } from '@/lib/api';
+import type { Category, Dialogue } from '@/types';
 
 type TabId = 'life' | 'business' | 'it';
 
-const TABS: { id: TabId; label: string; count: number }[] = [
-  { id: 'life', label: '생활', count: 10 },
-  { id: 'business', label: '비즈니스', count: 10 },
-  { id: 'it', label: 'IT / 통신', count: 10 },
+const TAB_DEFS: { id: TabId; label: string }[] = [
+  { id: 'life', label: '생활' },
+  { id: 'business', label: '비즈니스' },
+  { id: 'it', label: 'IT / 통신' },
 ];
 
 export default function CategoriesScreen() {
   const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabId>('life');
   const activeCategory = activeTab as Category;
-  const situationsQuery = useSituations(activeCategory);
-  const expressionsQuery = useExpressions({ category: activeCategory });
-  const { data: situations } = situationsQuery;
-  const { data: expressions } = expressionsQuery;
+  const dialoguesQuery = useDialogues();
 
-  const visibleSituations = situations ?? (USE_MOCK ? mockSituations.slice(0, 7) : []);
-  const visibleExpressions = expressions?.items ?? (USE_MOCK ? mockExpressions.filter((item) => item.category === activeCategory) : []);
-  const isLoading = !situations && !expressions && (situationsQuery.isLoading || expressionsQuery.isLoading);
-  const isError = situationsQuery.isError || expressionsQuery.isError;
+  const allDialogues = dialoguesQuery.data ?? [];
+  const dialogues = useMemo(
+    () => allDialogues.filter((d) => d.category === activeCategory),
+    [allDialogues, activeCategory],
+  );
+
+  const tabs = useMemo(
+    () => TAB_DEFS.map((t) => ({ ...t, count: allDialogues.filter((d) => d.category === t.id).length })),
+    [allDialogues],
+  );
+
   const bottomContentPadding = 168 + Math.max(insets.bottom, 48);
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={{ paddingBottom: bottomContentPadding }} showsVerticalScrollIndicator={false}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.sub}>학습 영역</Text>
           <Text style={styles.title}>
-            무엇을 <Text style={styles.titleSerif}>연습할까요?</Text>
+            오늘 들을 <Text style={styles.titleSerif}>대화를 골라보세요</Text>
           </Text>
         </View>
 
-        <CategoryTab tabs={TABS} active={activeTab} onSelect={setActiveTab} />
+        <CategoryTab tabs={tabs} active={activeTab} onSelect={setActiveTab} />
 
-        {/* List */}
         <View style={styles.list}>
-          <SectionLabel style={{ marginBottom: 10 }}>
-            {activeTab === 'life' ? '이민 정착 · MVP' : activeTab === 'business' ? '비즈니스 영어 · Phase 2' : 'IT/통신 기술 · Phase 2'}
-          </SectionLabel>
-
-          {isLoading ? (
-            <ScreenState loading title="학습 영역을 불러오는 중" message="카테고리와 상황별 표현을 가져오고 있어요." />
-          ) : isError ? (
+          {dialoguesQuery.isLoading ? (
+            <ScreenState loading title="대화를 불러오는 중" message="카테고리별 학습 대화를 가져오고 있어요." />
+          ) : dialoguesQuery.isError ? (
             <ScreenState
-              title="학습 영역을 불러오지 못했어요"
-              message="백엔드 연결을 확인한 뒤 다시 시도해 주세요."
+              title="대화를 불러오지 못했어요"
+              message={getApiErrorMessage(dialoguesQuery.error)}
               actionLabel="다시 시도"
-              onAction={() => {
-                situationsQuery.refetch();
-                expressionsQuery.refetch();
-              }}
+              onAction={() => dialoguesQuery.refetch()}
             />
-          ) : activeTab !== 'life' ? (
-            <View style={styles.lockedBanner}>
-              <Text style={styles.lockedText}>Phase 2에서 추가될 예정입니다</Text>
-              <Text style={styles.lockedSub}>생활영어 완료 후 순차 개방</Text>
-            </View>
-          ) : visibleSituations.length === 0 ? (
-            <ScreenState title="아직 학습 상황이 없어요" message="표현 데이터가 추가되면 이곳에 표시됩니다." />
+          ) : dialogues.length === 0 ? (
+            <ScreenState
+              title="이 카테고리에 대화가 없어요"
+              message="다른 카테고리를 확인해 보세요."
+            />
           ) : (
-            <View style={styles.situationList}>
-              {visibleSituations.map((sit) => {
-                const pct = sit.totalExpressions > 0
-                  ? (sit.completedExpressions / sit.totalExpressions) * 100
-                  : 0;
-                const expression = visibleExpressions.find((item) => item.situationKo === sit.name) ?? visibleExpressions[0] ?? mockExpressions[0];
-                const isDone = pct === 100;
-                const isNew = pct === 0;
-                const isIn = pct > 0 && pct < 100;
-
-                return (
-                  <Pressable
-                    key={sit.id}
-                    style={({ pressed }) => [
-                      styles.situationRow,
-                      pressed && { opacity: 0.8, transform: [{ scale: 0.99 }] },
-                    ]}
-                    onPress={() => router.push(`/shadowing/${expression.id}`)}
-                  >
-                    <Text style={styles.idx}>{sit.idx}</Text>
-                    <View style={styles.situationInfo}>
-                      <View style={styles.situationNameRow}>
-                        <Text style={styles.situationName}>{sit.name}</Text>
-                        {isDone && sit.bestScore && (
-                          <Chip color={C.sage} bg={C.sageSoft} style={styles.chip}>
-                            완료 {sit.bestScore}
-                          </Chip>
-                        )}
-                        {isNew && (
-                          <Chip color={C.ink2} bg={C.paper2} style={styles.chip}>NEW</Chip>
-                        )}
-                      </View>
-                      <Text style={styles.situationSub}>
-                        {sit.nameEn} · {sit.totalExpressions} expressions
-                      </Text>
-                      {isIn && (
-                        <View style={styles.progressRow}>
-                          <ProgressLine value={pct} label={`${Math.round(pct)}%`} />
-                        </View>
-                      )}
-                    </View>
-                    <ChevronIcon color={C.muted2} />
-                  </Pressable>
-                );
-              })}
+            <View style={styles.dialogueList}>
+              {dialogues.map((dlg, idx) => (
+                <DialogueCard
+                  key={dlg.id}
+                  index={idx + 1}
+                  dialogue={dlg}
+                  onPress={() => router.push(`/dialogue/${dlg.id}` as Href)}
+                />
+              ))}
             </View>
           )}
         </View>
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function DialogueCard({
+  index,
+  dialogue,
+  onPress,
+}: {
+  index: number;
+  dialogue: Dialogue;
+  onPress: () => void;
+}) {
+  const keyCount = dialogue.turns.filter((t) => t.expressionId).length;
+  const speakerLabel = dialogue.speakerAName ? `${dialogue.speakerAName} · You` : `A · You`;
+
+  return (
+    <Pressable onPress={onPress} hitSlop={4}>
+      <View style={styles.dialogueCardInner}>
+        <Text style={styles.idx}>{String(index).padStart(2, '0')}</Text>
+        <View style={styles.dialogueInfo}>
+          <Text style={styles.dialogueTitle} numberOfLines={1}>{dialogue.situationKo}</Text>
+          <Text style={styles.dialogueSub}>
+            Level {dialogue.level} · {dialogue.turns.length}턴 · 키 표현 {keyCount}
+          </Text>
+          <Text style={styles.dialogueSpeakers}>{speakerLabel}</Text>
+        </View>
+        <ChevronIcon color={C.muted2} />
+      </View>
+    </Pressable>
   );
 }
 
@@ -139,24 +121,27 @@ const styles = StyleSheet.create({
   titleSerif: { fontFamily: 'InstrumentSerifItalic', fontSize: 26, fontWeight: '400' },
 
   list: { paddingHorizontal: spacing.screenH },
-  lockedBanner: {
-    padding: 20, backgroundColor: C.paper2, borderRadius: 16,
-    alignItems: 'center', gap: 6,
+  dialogueList: { gap: 8 },
+  dialogueCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    padding: 14,
+    paddingHorizontal: 16,
+    backgroundColor: C.card,
+    borderRadius: 16,
+    borderWidth: 0.5,
+    borderColor: C.line,
   },
-  lockedText: { fontSize: 14, fontWeight: '600', color: C.ink2 },
-  lockedSub: { fontSize: 12, color: C.muted },
-
-  situationList: { gap: 8 },
-  situationRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    padding: 14, paddingHorizontal: 16,
-    backgroundColor: C.card, borderRadius: 16, borderWidth: 0.5, borderColor: C.line,
+  idx: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: C.muted2,
+    fontFamily: 'IBMPlexMono',
+    width: 22,
   },
-  idx: { fontSize: 11, fontWeight: '500', color: C.muted2, fontFamily: 'IBMPlexMono', width: 18 },
-  situationInfo: { flex: 1, minWidth: 0 },
-  situationNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  situationName: { fontSize: 14, fontWeight: '600' },
-  chip: { paddingVertical: 2, paddingHorizontal: 7 },
-  situationSub: { fontSize: 11, color: C.muted, marginTop: 2 },
-  progressRow: { marginTop: 7 },
+  dialogueInfo: { flex: 1, minWidth: 0, gap: 2 },
+  dialogueTitle: { fontSize: 14, fontWeight: '700', color: C.ink },
+  dialogueSub: { fontSize: 11, color: C.muted },
+  dialogueSpeakers: { fontSize: 10, color: C.muted2, marginTop: 2 },
 });
