@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, ScrollView, Pressable, StyleSheet, SafeAreaView,
 } from 'react-native';
@@ -8,7 +8,9 @@ import { C, spacing } from '@/lib/theme';
 import { ChevronIcon, PlayIcon } from '@/components/common/Icons';
 import { ScreenState } from '@/components/common/ScreenState';
 import { getBlock, SOUND_BLOCK_CATEGORY_LABELS, SOUND_BLOCK_SUBCATEGORY_LABELS } from '@/lib/data/sound_blocks';
+import blockAudioMap from '@/lib/data/sound_block_audio.json';
 import { useTts } from '@/hooks/useTts';
+import { useBlockStatsStore } from '@/stores/block_stats.store';
 
 const EXAMPLE_VOICES = ['echo', 'nova', 'shimmer', 'fable'] as const;
 
@@ -19,6 +21,15 @@ export default function BlockScreen() {
   const insets = useSafeAreaInsets();
   const [playingIdx, setPlayingIdx] = useState<number | null>(null);
   const [showKo, setShowKo] = useState(true);
+  const recordOpen = useBlockStatsStore((s) => s.recordOpen);
+  const recordPlay = useBlockStatsStore((s) => s.recordExamplePlay);
+  const examplePlayCount = useBlockStatsStore((s) =>
+    block ? (s.stats[block.id]?.examplePlayCounts ?? {}) : {},
+  );
+
+  useEffect(() => {
+    if (block) recordOpen(block.id);
+  }, [block, recordOpen]);
 
   if (!block) {
     return (
@@ -49,10 +60,17 @@ export default function BlockScreen() {
     }
     const example = block.examples[idx];
     if (!example) return;
-    const voice = EXAMPLE_VOICES[idx % EXAMPLE_VOICES.length];
     setPlayingIdx(idx);
+    recordPlay(block.id, idx);
     try {
-      await tts.playText(example.en, undefined, voice);
+      // 사전 캐싱된 URL이 있으면 직접 재생 (즉시), 없으면 /ai/tts/generate 폴백
+      const cachedUrl = (blockAudioMap as Record<string, (string | null)[]>)[block.id]?.[idx];
+      if (cachedUrl) {
+        await tts.playUrl(cachedUrl);
+      } else {
+        const voice = EXAMPLE_VOICES[idx % EXAMPLE_VOICES.length];
+        await tts.playText(example.en, undefined, voice);
+      }
     } finally {
       setPlayingIdx(null);
     }
@@ -94,12 +112,16 @@ export default function BlockScreen() {
         <View style={styles.examplesList}>
           {block.examples.map((ex, idx) => {
             const isPlaying = playingIdx === idx;
+            const playCount = examplePlayCount[idx] ?? 0;
             return (
               <View key={`${block.id}-${idx}`} style={styles.exampleCard}>
                 <View style={styles.exampleInner}>
                   <View style={styles.exampleText}>
                     <Text style={styles.exampleEn}>{ex.en}</Text>
                     {showKo ? <Text style={styles.exampleKo}>{ex.ko}</Text> : null}
+                    {playCount > 0 ? (
+                      <Text style={styles.examplePlayCount}>들음 {playCount}회</Text>
+                    ) : null}
                   </View>
                   <Pressable
                     accessibilityRole="button"
@@ -194,6 +216,7 @@ const styles = StyleSheet.create({
   exampleText: { flex: 1, minWidth: 0 },
   exampleEn: { fontSize: 16, fontWeight: '600', color: C.ink, lineHeight: 22 },
   exampleKo: { fontSize: 12, color: C.muted, marginTop: 4, lineHeight: 16 },
+  examplePlayCount: { fontSize: 10, color: C.sage, fontWeight: '700', marginTop: 5 },
 
   playBtn: {
     width: 38, height: 38, borderRadius: 19,

@@ -11,6 +11,7 @@ import {
   SOUND_BLOCK_CATEGORY_LABELS,
   SOUND_BLOCK_SUBCATEGORY_LABELS,
 } from '@/lib/data/sound_blocks';
+import { useBlockStatsStore } from '@/stores/block_stats.store';
 import type { SoundBlock, SoundBlockCategory, SoundBlockSubcategory } from '@/types';
 
 const CATEGORY_TABS: { id: SoundBlockCategory; count: number }[] = (['start', 'core', 'detail', 'advanced'] as const).map(
@@ -90,6 +91,7 @@ export default function BlocksScreen() {
 
 function BlockCard({ block }: { block: SoundBlock }) {
   const previewExample = block.examples[0];
+  const openCount = useBlockStatsStore((s) => s.stats[block.id]?.openCount ?? 0);
   return (
     <Pressable
       accessibilityRole="button"
@@ -103,6 +105,11 @@ function BlockCard({ block }: { block: SoundBlock }) {
           <View style={styles.rowTitleRow}>
             <Text style={styles.rowTitle}>{block.name}</Text>
             {block.partsLabel ? <Text style={styles.rowPart}>{block.partsLabel}</Text> : null}
+            {openCount > 0 ? (
+              <View style={styles.openBadge}>
+                <Text style={styles.openBadgeText}>{openCount}</Text>
+              </View>
+            ) : null}
           </View>
           <Text style={styles.rowPattern} numberOfLines={2}>{block.pattern}</Text>
           {previewExample ? (
@@ -182,6 +189,15 @@ const styles = StyleSheet.create({
   rowTitleRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6 },
   rowTitle: { fontSize: 14, fontWeight: '700', color: C.ink },
   rowPart: { fontSize: 10, fontWeight: '600', color: C.muted2 },
+  openBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 999,
+    backgroundColor: C.sageSoft,
+    minWidth: 18,
+    alignItems: 'center',
+  },
+  openBadgeText: { fontSize: 9, fontWeight: '800', color: C.sage },
   rowPattern: { fontSize: 11, color: C.muted, marginTop: 3, lineHeight: 15 },
   rowExample: { fontSize: 12, color: C.ink2, marginTop: 4, fontStyle: 'italic' },
 });

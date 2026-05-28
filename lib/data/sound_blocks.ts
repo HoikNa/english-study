@@ -760,3 +760,11 @@ export function getBlocksByCategory(category: SoundBlock['category']): SoundBloc
 export function getBlock(id: string): SoundBlock | undefined {
   return soundBlocks.find((b) => b.id === id);
 }
+
+/** day-of-year 기반 회전. dialogue와 동일한 단순 알고리즘. */
+export function pickTodayBlock(now: Date = new Date()): SoundBlock {
+  const start = new Date(now.getFullYear(), 0, 0);
+  const diff = now.getTime() - start.getTime();
+  const dayOfYear = Math.floor(diff / (1000 * 60 * 60 * 24));
+  return soundBlocks[dayOfYear % soundBlocks.length];
+}

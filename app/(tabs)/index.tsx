@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View, Text, ScrollView, Pressable, StyleSheet, SafeAreaView,
 } from 'react-native';
@@ -11,6 +11,7 @@ import { ScreenState } from '@/components/common/ScreenState';
 import { PlayIcon, ChevronIcon } from '@/components/common/Icons';
 import { StreakBadge } from '@/components/home/StreakBadge';
 import { mockExpressions, mockReviewQueue, mockStats, mockStreak } from '@/lib/mocks/expressions.mock';
+import { pickTodayBlock, SOUND_BLOCK_CATEGORY_LABELS } from '@/lib/data/sound_blocks';
 import { useProgressStats, useReviewToday, useTodayExpression } from '@/hooks/useLearningData';
 import { useDialogueToday } from '@/hooks/useDialogue';
 import { getApiErrorMessage, USE_MOCK } from '@/lib/api';
@@ -52,6 +53,8 @@ export default function HomeScreen() {
   const openTodayDialogue = () => {
     if (todayDialogue) router.push(`/dialogue/${todayDialogue.id}` as Href);
   };
+  const todayBlock = useMemo(() => pickTodayBlock(), []);
+  const openTodayBlock = () => router.push(`/block/${todayBlock.id}` as Href);
   const bottomContentPadding = 168 + Math.max(insets.bottom, 48);
 
   if (isInitialLoading) {
@@ -179,6 +182,32 @@ export default function HomeScreen() {
           </Pressable>
         </View>
         ) : null}
+
+        {/* 오늘의 블록 — 작은 보조 카드 (대화 옆에 패턴 학습) */}
+        <View style={styles.section}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`오늘의 블록 ${todayBlock.name} 학습`}
+            onPress={openTodayBlock}
+            style={({ pressed }) => [styles.blockCard, pressed && { opacity: 0.92 }]}
+          >
+            <View style={styles.blockCardInner}>
+              <View style={styles.blockCardInfo}>
+                <Text style={styles.blockCardLabel}>오늘의 블록</Text>
+                <View style={styles.blockCardTitleRow}>
+                  <Text style={styles.blockCardTitle}>{todayBlock.name}</Text>
+                  {todayBlock.partsLabel ? (
+                    <Text style={styles.blockCardPart}>{todayBlock.partsLabel}</Text>
+                  ) : null}
+                </View>
+                <Text style={styles.blockCardMeta} numberOfLines={1}>
+                  {SOUND_BLOCK_CATEGORY_LABELS[todayBlock.category]} · 예문 {todayBlock.examples.length}개
+                </Text>
+              </View>
+              <ChevronIcon color={C.muted2} />
+            </View>
+          </Pressable>
+        </View>
 
         {/* 복습 큐 — paper2 큰 카드, 안에 흰 sub 카드 */}
         <View style={styles.section}>
@@ -360,6 +389,24 @@ const styles = StyleSheet.create({
   contentCardTitle: { fontSize: 16, fontWeight: '800', color: C.ink },
   contentCardLink: { fontSize: 12, fontWeight: '700', color: C.accent },
   contentCardMuted: { fontSize: 11, fontWeight: '700', color: C.muted },
+
+  // 오늘의 블록 카드
+  blockCard: { borderRadius: 16, overflow: 'hidden' },
+  blockCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: C.paper2,
+    borderRadius: 16,
+  },
+  blockCardInfo: { flex: 1, minWidth: 0 },
+  blockCardLabel: { fontSize: 10, fontWeight: '700', color: C.accent, letterSpacing: 1.1, textTransform: 'uppercase' },
+  blockCardTitleRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 4 },
+  blockCardTitle: { fontSize: 15, fontWeight: '800', color: C.ink },
+  blockCardPart: { fontSize: 10, fontWeight: '600', color: C.muted2 },
+  blockCardMeta: { fontSize: 11, color: C.muted, marginTop: 3 },
 
   // AI 시뮬레이션 row (white, inside paper2)
   simulateList: { gap: 8 },
