@@ -136,6 +136,22 @@ CloudWatch alarms: Lambda Errors, Lambda Duration
 - The 2026-05-26 Secrets Manager deploy created secret `speakready-my-backend/app`, removed raw DB/JWT/Azure/OpenAI/Supabase secrets from Lambda environment variables, and verified runtime auth through `/auth/register` plus `/auth/me`.
 - The 2026-05-26 backend Sentry deploy added `SENTRY_DSN` to the secret JSON and `SENTRY_TRACES_SAMPLE_RATE` to Lambda env. A follow-up deploy set `SENTRY_DSN` in Secrets Manager, so backend Sentry is active.
 - The 2026-05-27 cleanup deploy removes the orphan `GEMINI_FALLBACK_ENABLED` env var; the runtime config field was also dropped because no Gemini fallback path was ever implemented.
+- The 2026-05-28 deploy adds `/api/v1/dialogues` endpoints (today, list, by-id) and the `dialogues` + `dialogue_turns` tables (created on startup via `_create_postgres_schema`). Run `PYTHONPATH=. .venv/bin/python scripts/seed_expressions.py` followed by `seed_dialogues.py` to populate.
+
+## Dialogue seeding workflow
+
+The 30 dialogues are generated offline by `backend/scripts/generate_dialogues.py` (GPT-4o, ~$0.30) and stored in `lib/mocks/dialogues.mock.ts`. To push them into the deployed Supabase DB:
+
+```bash
+cd backend
+set -a && source .env && set +a
+PYTHONPATH=. .venv/bin/python scripts/seed_expressions.py   # 30개 expression (idempotent)
+PYTHONPATH=. .venv/bin/python scripts/seed_dialogues.py     # 30개 dialogue + turns (upsert)
+```
+
+Both scripts are idempotent. `seed_dialogues.py` prefixes turn ids with the dialogue id (e.g., `dlg-001-t1`) so the DB UNIQUE constraint on `dialogue_turns.id` is satisfied.
+
+`expression_id` on `dialogue_turns` is a **soft reference** (no FK) so dialogues can ship even when the deployed DB is missing some of the referenced expressions. If a learner taps a "shadow this" pill for a missing expression, the shadowing screen will fail gracefully.
 
 ## Frontend OTA (EAS Update)
 
