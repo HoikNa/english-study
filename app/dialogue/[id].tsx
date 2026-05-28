@@ -6,13 +6,16 @@ import { useLocalSearchParams, router, type Href } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { C, spacing } from '@/lib/theme';
 import { ChevronIcon } from '@/components/common/Icons';
-import { mockDialogues } from '@/lib/mocks/dialogues.mock';
+import { ScreenState } from '@/components/common/ScreenState';
+import { useDialogue } from '@/hooks/useDialogue';
 import { useTts } from '@/hooks/useTts';
+import { getApiErrorMessage } from '@/lib/api';
 import type { DialogueTurn } from '@/types';
 
 export default function DialogueScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const dialogue = mockDialogues.find((d) => d.id === id) ?? mockDialogues[0];
+  const dialogueQuery = useDialogue(id);
+  const dialogue = dialogueQuery.data;
   const tts = useTts();
   const insets = useSafeAreaInsets();
   const bottomClearance = Platform.OS === 'android' ? Math.max(insets.bottom, 24) : Math.max(insets.bottom, 12);
@@ -25,6 +28,7 @@ export default function DialogueScreen() {
 
   const playTurn = useCallback(
     async (idx: number) => {
+      if (!dialogue) return;
       const turn = dialogue.turns[idx];
       if (!turn) return;
       const voice = turn.speaker === 'A' ? dialogue.speakerAVoice : dialogue.speakerBVoice;
@@ -35,6 +39,7 @@ export default function DialogueScreen() {
   );
 
   const playAll = useCallback(async () => {
+    if (!dialogue) return;
     cancelRef.current = false;
     setAutoPlaying(true);
     for (let i = 0; i < dialogue.turns.length; i++) {
@@ -57,6 +62,27 @@ export default function DialogueScreen() {
   useEffect(() => () => {
     cancelRef.current = true;
   }, []);
+
+  if (dialogueQuery.isLoading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenState loading title="대화를 불러오는 중" message="오늘의 대화 데이터를 가져오고 있어요." />
+      </SafeAreaView>
+    );
+  }
+
+  if (dialogueQuery.isError || !dialogue) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <ScreenState
+          title="대화를 불러오지 못했어요"
+          message={dialogueQuery.error ? getApiErrorMessage(dialogueQuery.error) : '백엔드 연결 상태를 확인해 주세요.'}
+          actionLabel="다시 시도"
+          onAction={() => dialogueQuery.refetch()}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe}>

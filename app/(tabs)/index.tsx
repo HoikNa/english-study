@@ -11,8 +11,8 @@ import { ScreenState } from '@/components/common/ScreenState';
 import { PlayIcon, ChevronIcon } from '@/components/common/Icons';
 import { StreakBadge } from '@/components/home/StreakBadge';
 import { mockExpressions, mockReviewQueue, mockStats, mockStreak } from '@/lib/mocks/expressions.mock';
-import { mockTodayDialogue } from '@/lib/mocks/dialogues.mock';
 import { useProgressStats, useReviewToday, useTodayExpression } from '@/hooks/useLearningData';
+import { useDialogueToday } from '@/hooks/useDialogue';
 import { getApiErrorMessage, USE_MOCK } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth.store';
 
@@ -47,7 +47,11 @@ export default function HomeScreen() {
   const reviewQueue = reviewToday?.items ?? (USE_MOCK ? mockReviewQueue : []);
   const today = new Date();
   const dateLabel = today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
-  const openTodayDialogue = () => router.push(`/dialogue/${mockTodayDialogue.id}` as Href);
+  const dialogueTodayQuery = useDialogueToday();
+  const todayDialogue = dialogueTodayQuery.data;
+  const openTodayDialogue = () => {
+    if (todayDialogue) router.push(`/dialogue/${todayDialogue.id}` as Href);
+  };
   const bottomContentPadding = 168 + Math.max(insets.bottom, 48);
 
   if (isInitialLoading) {
@@ -118,10 +122,11 @@ export default function HomeScreen() {
         </View>
 
         {/* Today's session card — 대화 듣기 중심 */}
+        {todayDialogue ? (
         <View style={styles.section}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={`오늘의 대화 ${mockTodayDialogue.situationKo} 듣기 시작`}
+            accessibilityLabel={`오늘의 대화 ${todayDialogue.situationKo} 듣기 시작`}
             hitSlop={6}
             onPress={openTodayDialogue}
             style={({ pressed }) => [
@@ -134,11 +139,11 @@ export default function HomeScreen() {
             <View style={styles.sessionTop}>
               <View style={styles.sessionMeta}>
                 <SectionLabel light>오늘의 대화</SectionLabel>
-                <Text style={styles.sessionTime}>{mockTodayDialogue.turns.length} TURNS</Text>
+                <Text style={styles.sessionTime}>{todayDialogue.turns.length} TURNS</Text>
               </View>
-              <Text style={styles.sessionTitle}>{mockTodayDialogue.situationKo}</Text>
+              <Text style={styles.sessionTitle}>{todayDialogue.situationKo}</Text>
               <Text style={styles.sessionSub}>
-                {mockTodayDialogue.category === 'business' ? '비즈니스' : mockTodayDialogue.category.toUpperCase()} · Level {mockTodayDialogue.level} · 키 표현 {mockTodayDialogue.turns.filter((tr) => tr.expressionId).length}개
+                {todayDialogue.category === 'business' ? '비즈니스' : todayDialogue.category.toUpperCase()} · Level {todayDialogue.level} · 키 표현 {todayDialogue.turns.filter((tr) => tr.expressionId).length}개
               </Text>
               <View style={styles.sessionActions}>
                 <View style={styles.startBtn}>
@@ -173,6 +178,7 @@ export default function HomeScreen() {
             </View>
           </Pressable>
         </View>
+        ) : null}
 
         {/* 복습 큐 — paper2 큰 카드, 안에 흰 sub 카드 */}
         <View style={styles.section}>
